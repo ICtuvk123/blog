@@ -22,11 +22,13 @@
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
   font: 17px/1.75 "LXGW WenKai", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
   min-height: 100vh;
   overflow-x: hidden;
+  position: relative;
+  isolation: isolate;
 }
 a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offset: .18em; }
 .wave-scene {
@@ -310,14 +312,14 @@ body::before {
   position: fixed;
   inset: 0;
   background:
-    linear-gradient(rgb(247 244 239 / .78), rgb(247 244 239 / .9)),
+    linear-gradient(rgb(247 244 239 / .62), rgb(247 244 239 / .82)),
     url("background.jpg") center / cover no-repeat;
-  z-index: -2;
+  z-index: -1;
 }
 @media (prefers-color-scheme: dark) {
   body::before {
     background:
-      linear-gradient(rgb(23 21 18 / .78), rgb(23 21 18 / .9)),
+      linear-gradient(rgb(23 21 18 / .62), rgb(23 21 18 / .82)),
       url("background.jpg") center / cover no-repeat;
   }
 }
