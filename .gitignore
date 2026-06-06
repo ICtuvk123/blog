@@ -1,17 +1,17 @@
-.obsidian/
-CET6/
-Excalidraw/
-multimodal medical/
-点集拓扑/
-编程问题/
-记忆抒情类散文/
-博客发布/
-scripts/
-site-assets/
-BLOG_DEPLOY.md
-PUBLISHING.md
-publish-list.txt
-作文.md
+﻿/.obsidian/
+/CET6/
+/Excalidraw/
+/multimodal medical/
+/点集拓扑/
+/编程问题/
+/记忆抒情类散文/
+/博客发布/
+/scripts/
+/site-assets/
+/BLOG_DEPLOY.md
+/PUBLISHING.md
+/publish-list.txt
+/作文.md
 *.tmp
 *.bak
 *.swp

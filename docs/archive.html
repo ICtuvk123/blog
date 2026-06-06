@@ -4,8 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>归档 · Thoughts</title>
-  <meta name="description" content="公开文章归档。">
+  <meta name="description" content="一个整理学习、研究、写作和工程问题的个人空间。">
   <link rel="stylesheet" href="assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
   <div class="wave-scene" aria-hidden="true">
@@ -17,18 +21,30 @@
   </div>
   <header class="site-header">
     <a class="brand" href=".">Thoughts</a>
+    
     <nav class="nav">
       <a href=".">首页</a>
       <a href="archive.html">归档</a>
       <a href="about.html">关于</a>
     </nav>
+
   </header>
   <main class="container">
-    <section class="panel">
-      <h1>归档</h1>
-      <p class="note">暂无公开文章。</p>
-      <p>只有带有 <code>publish: true</code> 标记的 Obsidian 笔记才会进入这个归档。</p>
-    </section>
+    
+<section class="archive-layout">
+  <aside class="panel">
+    <h1>归档</h1>
+    <p class="note">按专题组织，而不是按时间堆叠。</p>
+    <ul class="category-list"><li><a href="#未分类">未分类</a><span>1</span></li></ul>
+  </aside>
+  <div>
+<section class="panel" id="未分类">
+  <h2>未分类</h2>
+  <ul class="post-list"><li><a href="%E5%8D%9A%E5%AE%A2%E5%8F%91%E5%B8%83/%E6%8B%93%E6%89%91%E7%A9%BA%E9%97%B4.html">开区间，开集，闭区间，闭集</a><span class="category">2026-06-06</span></li></ul>
+</section>
+</div>
+</section>
+
   </main>
 </body>
 </html>

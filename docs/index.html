@@ -3,9 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Thoughts · 个人空间</title>
+  <title>Thoughts · Thoughts</title>
   <meta name="description" content="一个整理学习、研究、写作和工程问题的个人空间。">
   <link rel="stylesheet" href="assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
   <div class="wave-scene" aria-hidden="true">
@@ -17,45 +21,60 @@
   </div>
   <header class="site-header">
     <a class="brand" href=".">Thoughts</a>
+    
     <nav class="nav">
       <a href=".">首页</a>
       <a href="archive.html">归档</a>
       <a href="about.html">关于</a>
     </nav>
+
   </header>
   <main class="container">
-    <section class="home-grid">
-      <div class="hero">
-        <div>
-          <div class="eyebrow">Personal Website / Digital Garden</div>
-          <h1>ICtuvk 的个人空间</h1>
-          <p class="lead">公开内容已收回。之后只有明确标记 <code>publish: true</code> 的笔记才会出现在这里。</p>
-        </div>
-        <div class="actions">
-          <a class="button" href="archive.html">查看公开归档</a>
-          <a class="button secondary" href="about.html">了解发布规则</a>
-        </div>
-      </div>
-      <aside class="panel profile-card">
-        <div class="avatar">IC</div>
-        <div>
-          <h2>Thoughts</h2>
-          <p class="note">一个整理学习、研究、写作和工程问题的个人空间。</p>
-        </div>
-        <div class="stat-grid">
-          <div class="stat"><strong>0</strong><span>篇公开内容</span></div>
-          <div class="stat"><strong>显式</strong><span>发布规则</span></div>
-        </div>
-      </aside>
-    </section>
-    <section class="section-title">
-      <h2>当前状态</h2>
-      <span class="note">默认私有，显式公开</span>
-    </section>
-    <section class="panel">
-      <p>此前生成的公开文章页面已经从站点中移除。</p>
-      <p>以后在 Obsidian 笔记开头加入 <code>publish: true</code> 后，才会生成公开页面。</p>
-    </section>
+    
+<section class="home-grid">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Personal Website / Digital Garden</div>
+      <h1>ICtuvk 的个人空间</h1>
+      <p class="lead">这里不是单纯的文章仓库，而是持续生长的数字花园：记录正在学习的主题、读过的论文、写作练习、数学笔记和编程问题。</p>
+    </div>
+    <div class="actions">
+      <a class="button" href="archive.html">浏览全部笔记</a>
+      <a class="button secondary" href="about.html">了解这个空间</a>
+    </div>
+  </div>
+  <aside class="panel profile-card">
+    <div class="avatar">IC</div>
+    <div>
+      <h2>Thoughts</h2>
+      <p class="note">一个整理学习、研究、写作和工程问题的个人空间。</p>
+    </div>
+    <div class="stat-grid">
+      <div class="stat"><strong>1</strong><span>篇内容</span></div>
+      <div class="stat"><strong>1</strong><span>个专题</span></div>
+    </div>
+  </aside>
+</section>
+
+<section class="section-title">
+  <h2>专题入口</h2>
+  <a href="archive.html">查看归档 →</a>
+</section>
+<section class="card-grid">
+<a class="topic-card" href="archive.html#未分类">
+  <strong>未分类</strong>
+  <small>1 篇记录</small>
+</a>
+</section>
+
+<section class="section-title">
+  <h2>最近更新</h2>
+  <span class="note">按本地文件修改时间排序</span>
+</section>
+<section class="panel">
+  <ul class="post-list"><li><a href="%E5%8D%9A%E5%AE%A2%E5%8F%91%E5%B8%83/%E6%8B%93%E6%89%91%E7%A9%BA%E9%97%B4.html">开区间，开集，闭区间，闭集</a><span class="category">未分类 · 2026-06-06</span></li></ul>
+</section>
+
   </main>
 </body>
 </html>
