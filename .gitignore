@@ -8,6 +8,8 @@ multimodal medical/
 scripts/
 site-assets/
 BLOG_DEPLOY.md
+PUBLISHING.md
+publish-list.txt
 作文.md
 *.tmp
 *.bak
