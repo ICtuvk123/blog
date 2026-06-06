@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2026-03-29</div>
+  <h2 id="background">Background</h2>
+<ol>
+<li>different modalities exhibit substantial differences in dimensionality, noise characteristics, and measurement ranges</li>
+<li>technical biases arising from experimental preparation, sequencing platforms, and batch effects can obscure true biological signals and compromise the accuracy of downstream analyses</li>
+</ol>
+<h2 id="related-work">Related work</h2>
+<p>Batch effects correction strategies can be conceptually likened to the architecture of a variational autoencoder (VAE)</p>
+<p>Depending on where the correction is  applied, these methods can be categorized into three types: encoder-level, latent space, and decoder-level batch effects correction.</p>
+<p>latent space: Seurat employs latent space batch effects correction by first identifying biologically similar cell pairs (anchors) across different batches in the low-dimensional space, and then using these anchors to align cells from all batches into a shared space</p>
+<p>problems: As a result, batch information may be entangled with biological signals in the latent representations</p>
+<p>decoder-level: MultiVI [7] and Multigrate [8] adopt decoder-level batch effects correction: they inject batch information into the decoder and constrain it through the loss function to achieve batch effects correction</p>
+<p>problems: some batch information often remains in the latent space due to the reconstruction loss, potentially weakening the effectiveness of batch effects correction</p>
+<p>Encoder level: MIMA [9] adopts an encoder-level batch effects correction strategy by partitioning the latent space into three subspaces: shared, modality-specific, and batch-related.</p>
+<p>although it employs an encoder-level batch effects correction strategy, the encoder lacks additional mechanisms, which allows biological information to spill over into the batch subspace, resulting in some loss of biological signals.</p>
+<p>In contrast, encoder-level batch effects correction strategies hold greater potential. Although information loss is inevitable during dimensionality reduction, if this loss mainly involves batch information, more biological signals can be retained in the latent space, resulting in higher-quality latent representations.</p>
+<h2 id="method">Method</h2>
+<h3 id="overview">overview</h3>
+<p>!Pasted image 20260328114428.png</p>
+<p>From a mechanistic perspective, in conventional attention mechanisms, the query vector q of each token interacts with the key-value set {K, V} to generate the representation of that token. Here, the key-value set is composed of the key vectors k and value vectors v of all tokens. However, in biological contexts, cells exhibit significant correlations. Therefore, a fixed-size key-value set {K, V} can serve as a compact approximation of the full key-value set containing all cells.</p>
+<p>However, during training, through the reconstruction loss and the explicit injection of batch information in the decoder, the model does not need to encode batch-related information in {K, V}.</p>
+<h2 id="experiments">Experiments</h2>
+<p>!Pasted image 20260328114140.png</p>
+</article>
+
+  </main>
+</body>
+</html>

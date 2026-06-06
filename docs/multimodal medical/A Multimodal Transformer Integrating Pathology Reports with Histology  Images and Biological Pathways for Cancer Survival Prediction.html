@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2026-05-20</div>
+  <h2 id="background">Background</h2>
+<p>Patient prognosis in oncology refers to the predicted progression and outcome of cancer, often determined by clinical, pathological and molecular factors Recently, integrating multiple data modalities have been shown to improve survival prediction in cancer research, with most studies focusing on combining genomic data such as transcriptomic data with histology whole slide images (WSIs) However, pathology reports remain an under-utilized resource despite providing essential information to clinicians for estimating the prognosis of cancer patients</p>
+<h2 id="related-work">Related work</h2>
+<h3 id="multimodal">multimodal</h3>
+<p>Early studies primarily relied on late fusion using techniques such as concatenation [39], Kronecker product [3, 64] or factorized bilinear pooling [31, 45]. problem: since late fusion merges unimodal representations only at the final stage [12], it fails to capture cross-modal interactions, leading to suboptimal integration.</p>
+<p>Many models utilize transformers [66], incorporating co-attention [5, 34, 74] and cross-attention mechanisms [9, 20, 37, 51] to enhance feature integration. problem: genomics and pathology reports is modality imbalance, arising from differences in structure and scale of the data modalities.</p>
+<h2 id="method">Method</h2>
+<p>!Pasted image 20260520161154.png</p>
+<h3 id="diagnostic-prototypes-from-pathology-reports">Diagnostic Prototypes from Pathology Reports</h3>
+<h3 id="histological-prototypes-from-wsis">Histological prototypes from WSIs</h3>
+<h3 id="pathway-prototypes-from-genomic-data">Pathway Prototypes from Genomic Data</h3>
+<h3 id="multimodal-fusion">Multimodal Fusion</h3>
+<h2 id="experiment">Experiment</h2>
+<p>!Pasted image 20260520161342.png</p>
+</article>
+
+  </main>
+</body>
+</html>

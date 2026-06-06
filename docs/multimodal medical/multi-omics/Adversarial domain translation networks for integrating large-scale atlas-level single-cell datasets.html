@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2026-03-07</div>
+  <h2 id="background">Background</h2>
+<h3 id="motivation">motivation</h3>
+<ol>
+<li>each dataset has grown dramatically, datasets with millions of cells have been produced, requiring integration methods to be scalable</li>
+<li>technology now allows comprehensive characterization of complex organs containing rare subpopulations of cells that can be captured, albeit in small numbers</li>
+<li>Therefore, there is an urgent need for methods that can flexibly account for heterogeneous dataset-specific effects, while maintaining high integration accuracy.</li>
+</ol>
+<h3 id="contribution">contribution</h3>
+<ol>
+<li>Portal can adaptively distinguish domain-shared and domain-unique cell types, avoiding overcorrection of domain-unique cell types</li>
+<li>without using cell type labels, Portal can find correct correspondence between domains and retain biological variation</li>
+<li>Portal can scale up to millions of cells in minutes with nearly constant memory usage.</li>
+</ol>
+<h2 id="method">Method</h2>
+<h3 id="overview">overview</h3>
+<p>!Pasted image 20260307151009.png</p>
+<p>In Portal, encoders are designed to remove domain-specific effects, and generators are designed to simulate the generating process of such effects</p>
+<p>Portal trains domain translation network G2(E1(·)) : X → Y, such that the  distribution of transferred cells G2(E1(x)) can be mixed with the distribution of  cell embeddings y in domain Y. Discriminator D2(·) is employed in domain Y to identify where the poor mixing of the two distributions occurs. The competition between domain translation network G2(E1(·)) and discriminator D2(·) is known  as adversarial learning23. Discriminator D2(·) will send a feedback signal to  improve the domain translation network G2(E1(·)) until the two distributions  are well mixed. By symmetry, domain translation network G1(E2(·)) : Y → X  and discriminator D1(·) deployed in domain X form another adversarial learning  pair. The feedback signal from D1(·) improves G1(E2(·)) until the well mixing  of the transferred cell distribution G1(E2 (y)) and the original cell distribution x in domain X .</p>
+<p>From the above reasoning, domain-unique cell populations are prone to be assigned with extreme discriminator scores, either too high in the original domain or too low in the transferred domain. Such extreme scores can lead to overcorrection. To address this issue in single-cell data integration tasks, we set boundaries for discriminator scores to make discriminators inactive on such cells. Specifically, the outputs of standard discriminators are transformed into (0, 1) with the sigmoid function, that is, Di(x) = sigmoid (di (x)) = 1/(1 + exp(−di(x)))  , i = 1, 2, where di(x) ∈ (−∞, ∞) is the logit of the output. We bound the  discriminator score by thresholding its logit to a reasonable range [−t, t]:   ̃Di(x) = 1  1+exp(−clamp(di(x))) , (5)  where clamp(·) = max(min (·, t) , −t). By clamping the logit di(x),  ̃Di(x)  becomes a constant when di(x) &lt; −t or di(x) &gt; t, providing zero gradients  for updating the parameters of encoders and generators. Meanwhile,  ̃Di(x)  remains the same as Di(x) when di(x) ∈ [−t, t]. By such design, the adversarial learning mechanism in Portal is only applied to cell populations that are likely to be common across domains. In Portal, we then use this modified version  of discriminators  ̃Di(·) to avoid incorrect alignment of domain-unique cell  populations. For clarity, we still use the notation Di(·) to represent  ̃Di(·) hereafter.</p>
+</article>
+
+  </main>
+</body>
+</html>

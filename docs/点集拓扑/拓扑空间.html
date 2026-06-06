@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>开区间，开集，闭区间，闭集 · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>开区间，开集，闭区间，闭集</h1>
+  <div class="meta">点集拓扑 · 更新于 2026-06-05</div>
+  <h2 id="开区间开集闭区间闭集">开区间，开集，闭区间，闭集</h2>
+<p>开区间的定义： 若$I$是一个开区间，则对于任意$x \in I$ , 存在$\epsilon &gt; 0$ , 使得$B(x,\epsilon) \in I$</p>
+<p>开集是在开区间的基础上进行扩展： 若$U \subset \mathbb{R}$ , 则 $U$ 被称为 $\mathbb{R}$ 上的开集，若任意$x \in U$ , 存在 $\epsilon &gt; 0$ , 使得 $B(x,\epsilon) \in I$</p>
+<p>接下来我们要介绍闭集的概念，闭集的定义是开集的补集，但这是一句很抽象的论断，我们可以采用另一种更加具体的定义，从另一种定义出发，推导出闭集是开集的补集，这有助于我们加深理解</p>
+<p>先铺垫极限点的概念： 若 $A \subset R$ , 则称 $x$ 是 $A$ 的一个极限点，当且仅当，对于任意 $\epsilon &gt; 0$ , 都可以找到 $a \in A$ , 使得 $|a -x | &lt; 0$</p>
+<p>闭区间的定义： 若 $I$ 是一个闭区间，则它包含所有 $I$ 的极限点</p>
+<blockquote>
+<p>注意，这句话并不意味着 $I$ 中的点都是极限点，而是说 $I$ 的极限点必须在 $I$ 中</p>
+</blockquote>
+<p>闭集： 若 $V$ 是 $\mathbb{R}$ 的一个子集，则它被称为 $\mathbb{R}$ 的一个闭集，若每一个 $V$ 的极限点都在 $V$ 中</p>
+<p>若 $U$ 是 $\mathbb{R}$ 的一个子集，则 $U$ 是 $\mathbb{R}$ 中的一个开集当且仅当 $V = \mathbb{R} - U$ 是 $\mathbb{R}$ 中的一个闭集 证明： &#x27;&#x27;=&gt;&#x27;&#x27;： 采用反证法，若 $V$ 不是一个闭集，则存在一个 $V$ 的极限点不在 $V$ 中，则这个极限点在 $U$ 中，假设这个极限点为 $x$ ，由于 $U$ 是一个开集，故存在 $\epsilon &gt; 0$ ，使得 $B(x,\epsilon) \subset U$， 而这样的 $x$ 不可能是 $V$ 的极限点 &quot;&lt;=&quot;: 采用反证法，若U不是一个开集，则存在 $x \in U$ ，$\forall \epsilon &gt; 0$ ， $B(x,\epsilon)  \cap V \neq \emptyset$ ，那么找一组 $x_n \in B(x,\frac{1}{n}) \cap V$，$x_n$ 是收敛于$x$ 的，可是 $x_n$ 是 $V$ 中的，$V$ 是一个闭集，它的极限点不可能不在 $V$ 中，故矛盾</p>
+</article>
+
+  </main>
+</body>
+</html>

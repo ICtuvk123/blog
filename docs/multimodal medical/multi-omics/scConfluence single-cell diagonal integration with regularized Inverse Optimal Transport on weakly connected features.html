@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2026-02-23</div>
+  <h2 id="background">Background</h2>
+<h3 id="problem">problem</h3>
+<ul>
+<li>Indeed, connections between the features of different modalities are generally known in biology</li>
+<li>Most of the state-of-the-art methods use this prior biological knowledge to convert all modalities to the same features and then handle the alignment similarly to batch effect correction</li>
+<li>Indeed, acrossmodality feature connections are often rare and noisy</li>
+<li>However, they still depend on the assumption that most features can be reliably connected across modalities</li>
+<li>a population of cells (cell type/state) can be present only in one modality, which is frequently the case for unpaired data</li>
+</ul>
+<h3 id="solution">solution</h3>
+<ul>
+<li>we propose scConfluence, a diagonal integration method combining uncoupled autoencoders, which reduce the dimensionality of the original data to a shared latent space and account for potential batch effects, together with regularized Inverse Optimal Transport (rIOT)32, which aligns cells across modalities in the shared latent space by leveraging weakly connected features</li>
+<li>thanks to the unbalanced relaxation of Optimal Transport33, scConfluence can also deal with cell types absent in a modality thus overcoming all the major limitations of the state-ofthe-art</li>
+</ul>
+<h2 id="method">Method</h2>
+<p>!Pasted image 20260223091222.png we have access to $Y^{(p,p&#x27;))} \in \mathbb{R}^{n^{(p)} \cdot d^{(p,p&#x27;)}},Y^{(p&#x27;,p))} \in \mathbb{R}^{n^{(p&#x27;)} \cdot d^{(p,p&#x27;)}}$</p>
+<p>AE also performs batch correction by learning cell embeddings independent from their experimental batches of origin</p>
+<p>First, construct $Y^{(p,p&#x27;))} \in \mathbb{R}^{n^{(p)} \cdot d^{(p,p&#x27;)}},Y^{(p&#x27;,p))} \in \mathbb{R}^{n^{(p&#x27;)} \cdot d^{(p,p&#x27;)}}$ by prior knowledge. Second, compute corr($Y^{(p,p&#x27;))},Y^{(p&#x27;,p))}$) as cost Third, use unbalanced OT to compute $P^{(p,p&#x27;)}$ Fourth, use $P^{(p,p&#x27;)}$ as the evidence to align $Z^{(p)},Z^{(p&#x27;)}$ Fifth, use sinkhorn distance to enable latent vectors are aligned in the shared space</p>
+</article>
+
+  </main>
+</body>
+</html>

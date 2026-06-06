@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2025-12-20</div>
+  <h2 id="background">Background</h2>
+<h3 id="motivation">Motivation</h3>
+<ol>
+<li>Conducting disentanglement learning on single-cell omics data offers a promising alternative to traditional black-box representation learning by separating the semantic concepts embedded in a biological process.</li>
+</ol>
+<h3 id="problem">Problem</h3>
+<ol>
+<li>Although single-cell data can measure gene expression levels, important concept information (cell type, batch effects) often remains  hidden within the data</li>
+<li>the complexity of single-cell omics data, which is characterised by high dimensionality and the presence of entangled concepts</li>
+<li>However, disentanglement is very challenging for single-cell data, as sequencing technology often introduces noise, such as dropout effects, and the underlying biological concepts cannot be directly observed, unlike in image data.</li>
+<li>latent concepts such as parasite infection and cell status - in single-cell data are often causally connected, making it hard to clearly separate them with existing disentanglement methods.</li>
+</ol>
+<h2 id="related-work">Related work</h2>
+<h3 id="statistical-methods">Statistical methods:</h3>
+<p>factor analysis or nonnegative matrix factorisation are used to identify various biological programmes on the basis of statistical patterns However, these methods operate purely at a correlational level and do not account for causal relationships between biological concepts. In addition, they cannot support controlled manipulation of these concepts or perform counterfactual generation</p>
+<h3 id="learning-based-methods">Learning-based methods:</h3>
+<p>These approaches are generative and often utilise variational autoencoder (VAE)-based methods to learn hidden concepts by reconstructing single-cell data For example, CPA decouples perturbation responses11, scDisInFact removes batch effects9, and Biolord disentangles the concepts contained in single-cell data3. However, these methods operate under the assumption of independence between concepts and cannot guarantee the causality of concepts In addition, most methods rely on latent optimisation12, which can result in a loss of fine-grained concept representations at the single-cell resolution level</p>
+<h2 id="results">Results</h2>
+<h3 id="evaluation-of-causcell-on-disentanglement-performance">Evaluation of CausCell on disentanglement performance</h3>
+<h4 id="dataset">dataset</h4>
+<p>ICI_response dataset19, Immune_atlas dataset16, MERFISH_Brain dataset17, Spatiotemporally_Liver dataset18, Limb_development dataset20</p>
+<p>We also included two experimental  settings, in-distribution (ID) and out-of-distribution (OOD) settings, on the basis of whether the different combinations of concept labels were presented during training</p>
+<h4 id="concept-disentanglement">concept disentanglement</h4>
+<p>concept predictive ID &amp; OOD !Pasted image 20251219110829.png !Pasted image 20251219110923.png !Pasted image 20251219111209.png</p>
+<h4 id="reconstruction">reconstruction</h4>
+<p>CausCell can mitigate this trade-off through three strategies: (1) causal structure constraints, which ensure dependencies between concepts, (2) supervised constraints, which guide the model to learn meaningful, biologically relevant concept embeddings, and (3) cross-attention mechanism, which provides an effective inductive bias for disentanglement in the diffusion model.</p>
+<p>!Pasted image 20251219115442.png</p>
+<p>!Pasted image 20251220095238.png</p>
+<h2 id="method">Method</h2>
+<p>!Pasted image 20251220100351.png</p>
+<h3 id="causal-disentanglement-module-f">Causal disentanglement module F</h3>
+<p>In this study, the causal structure between concepts is predefined. !Pasted image 20251220103449.png !Pasted image 20251220103500.png</p>
+<h3 id="generative-module-g">Generative module G</h3>
+<p>!Pasted image 20251220104330.png</p>
+<h3 id="integration-causal-disentanglement-module-f-with-a-diffusion-process-g">Integration causal disentanglement module F with a diffusion process G</h3>
+<p>Then, this multi-head attention output is used to guide the denoising step, allowing the model to generate gene expression profiles that are consistent with the specific concept embeddings</p>
+<h3 id="evidence-lower-bound-of-causcell">Evidence lower bound of CausCell</h3>
+<p>!Pasted image 20251220111004.png</p>
+<h3 id="benefit-of-disentanglement-in-the-diffusion-model">Benefit of disentanglement in the diffusion model</h3>
+<p>Therefore, the diffusion model has a natural information bottleneck and is a good inductive bias for disentanglement representation purposes. As different concepts to be disentangled may contain different amounts of information, the diffusion model can dynamically allocate this information to the latent concepts in the reverse diffusion step, where the information decreases as the number of time steps increases. This optimisation objective is then similar to that of AnnealVAE.</p>
+<h3 id="single-cell-counterfactual-generation-via-the-do-operator">Single-cell counterfactual generation via the do operator</h3>
+<p>!Pasted image 20251220114652.png</p>
+</article>
+
+  </main>
+</body>
+</html>

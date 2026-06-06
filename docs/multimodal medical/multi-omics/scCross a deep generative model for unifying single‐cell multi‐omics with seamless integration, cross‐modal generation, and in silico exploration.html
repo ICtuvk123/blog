@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2026-02-23</div>
+  <h3 id="background">Background</h3>
+<p>Many single-cell multi-omics measurements are unmatched, profiling varied cell populations across modalities and thus missing the matched multimodal profiling of the same  cells.</p>
+<h2 id="related-work">Related work</h2>
+<p>A significant number of these methods are designed  to process data where different modalities originate from the same set of cells with matched  information. Examples include scMoGNN [21], SAILERX [22], scMVP [23], MIRA [24],  SCALEX [25], scMDC [26], and scAI [11]. However, these methods are often limited by  their reliance on matched multi-omics data, which is not always readily available or feasible to obtain</p>
+<p>Even the methods capable of handling both  matched and unmatched single-cell multi-omics data suffer from various limitations. For  instance, methods like Seurat [28] and Harmony [9] hinge on finding commonalities across  modalities, while others, such as scglue [29], uniPort [30], sciCAN [31], and scDART [32],  explore nonlinear transformations or lean into deep learning. Many of these techniques  face issues ranging from information loss to noise susceptibility [33].</p>
+<h2 id="method">Method</h2>
+<h3 id="overview">overview</h3>
+<p>!Pasted image 20260223150902.png</p>
+<p>Inject prior knowledge $\mathcal{GS_k} = \dot{x_{k}}· \tilde{x_{k}}$ where $\mathcal{GS_k}$ means the cell by geneset feature matrix of modality k.</p>
+<p>$\mathcal{GS_k}$​ does <strong>three jobs</strong>:</p>
+<ol>
+<li><strong>Common coordinate system across modalities</strong></li>
+<p>Different modalities have different raw features (genes vs peaks vs methylation sites). By converting non-RNA modalities into <strong>gene activity</strong> and then into <strong>gene-set scores</strong>, every modality gets represented in terms of the _same kinds of biological programs_ (pathways/GO/TF targets). That makes cross-modality alignment easier.</p>
+</ol>
+<ol>
+<li><strong>Inject prior knowledge</strong></li>
+<p>Gene sets encode known relationships (genes participating in the same pathway/regulation). This gives the model “structured hints” about what patterns should matter, rather than learning everything from scratch.</p>
+</ol>
+<ol>
+<li><strong>Denoising / robustness</strong></li>
+<p>Gene-set scores are aggregated signals, so they can be more stable than sparse/noisy raw features (especially for ATAC).</p>
+</ol>
+<p>VAE: $$z_k = MLP_{en_{k,u}}(CONCATE(GCN(\mathbb{x}_k,\mathcal{G_k}),\mathcal{GS_k};\phi_{en_k})) + MLP_{en_{k,\sigma^2}}(CONCATE(GCN(\mathbb{x}_k,\mathcal{G_k}),\mathcal{GS_k};\phi_{en_k})) \odot \epsilon$$ $$ \begin{equation} p\left(\mathbf{x}_{k} \mid \mathbf{z}_{k} ; \theta_{k}, \phi_{de_{k}}\right) = \prod_{i \in \mathcal{S}_{k}} \mathrm{NB}\left(\mathbf{x}_{k}^{(i)} ; \mu^{(i)}, \theta^{(i)}, \phi_{de_{k}}\right) \tag{5} \end{equation} $$ $$ \begin{equation} \mathrm{NB}\left(\mathbf{x}_{k}^{(i)} ; \mu^{(i)}, \theta^{(i)}, \phi_{de_{k}}\right) = \frac{\Gamma\left(\mathbf{x}_{k}^{(i)} + \theta^{(i)}\right)}{\Gamma\left(\theta^{(i)}\right) \Gamma\left(\mathbf{x}_{k}^{(i)} + 1\right)} \left(\frac{\mu^{(i)}}{\theta^{(i)} + \mu^{(i)}}\right)^{\mathbf{x}_{k}^{(i)}} \left(\frac{\theta^{(i)}}{\theta^{(i)} + \mu^{(i)}}\right)^{\theta^{(i)}} \tag{6} \end{equation} $$ $$ \begin{equation} \mathcal{L}&#x27;_{X}(\theta, \phi_{en}, \phi_{de}) = \sum_{k=1}^{K} \mathbb{E}_{x_k \sim p_{\text{data}}(x_k)} \left[ \mathbb{E}_{z_k \sim q(z_k \mid x_k, \mathcal{G}S_k, \phi_{en_k})} \log p(x_k \mid z_k ; \theta_k, \phi_{de_k}) - \mathrm{KL}\big( q(z_k \mid x_k, \mathcal{G}S_k ; \phi_{en_k}) \,\|\, p(z_k) \big) \right] \tag{9} \end{equation} $$ This equation represents the loss function that the VAE optimizes, where $m$ means the length of the latent space vector which is $50$ and $$ \theta = \bigcup_{k=1}^{K} \theta_k, \quad \phi_{en} = \bigcup_{k=1}^{K} \phi_{en_k}, \quad \phi_{de} = \bigcup_{k=1}^{K} \phi_{de_k} $$ are the combined sets of the encoder and decoder parameters, respectively. It incorporates both the data likelihood and a Kullback--Leibler (KL) divergence term to enforce a meaningful latent space for each of the $K$ modalities.</p>
+<p>$$\begin{equation} z = \mathrm{MLP}_{\mathrm{al\_en}_k,\mu}(z_k ; \phi_{\mathrm{al\_en}_k})</p>
+<ul>
+<li>\mathrm{MLP}_{\mathrm{al\_en}_k,\sigma^2}(z_k ; \phi_{\mathrm{al\_en}_k})</li>
+<p>\odot \epsilon, \quad \epsilon \sim \mathcal{N}(0, 1) \tag{11} \end{equation}$$ $$ \begin{equation} z_k = \mathrm{MLP}_{\mathrm{al\_de}_k,\mu}(z ; \phi_{\mathrm{al\_de}_k})</p>
+<li>\mathrm{MLP}_{\mathrm{al\_de}_k,\sigma^2}(z ; \phi_{\mathrm{al\_de}_k})</li>
+<p>\odot \epsilon, \quad \epsilon \sim \mathcal{N}(0, 1) \tag{13} \end{equation} $$</p>
+</ul>
+<p>High‐quality data integration and generation via generative adversarial learning $$ \begin{equation} \mathcal{L}_{D_z}(\phi, \psi) =</p>
+<ul>
+<li>\frac{1}{K}</li>
+<p>\sum_{k=1}^{K} \mathbb{E}_{x_k \sim p_{\mathrm{data}}(x_k)} \mathbb{E}_{z_k \sim q(z_k \mid x_k, \mathcal{G}S_k ; \phi_{en_k})} \mathbb{E}_{z \sim q(z \mid z_k ; \phi_{\mathrm{al\_en}_k})} \log D_{z_k}(z ; \psi) \tag{18} \end{equation} $$ Common gene MNN prior to align cells in similar cellular states The true test of alignment is whether embeddings  of the same or similar cells across different modalities can be represented identically or  similarly within the shared latent space. $$ \begin{equation} G = \mathrm{PCA}\big(\mathrm{MNN\_CORRECT}(\dot{x}_1, \ldots, \dot{x}_K)\big). \tag{21} \end{equation} $$ The alignment loss function, $\mathcal{L}_{\mathrm{MNN}}$, is then formulated to minimize the difference between cosine similarities of latent embeddings of cells and their counterparts based on common gene priors, ensuring consistency in the joint space: $$ \begin{equation} \mathcal{L}_{\mathrm{MNN}} = \sum_{h \neq j}^{K} \left\| \left( z_h&#x27; \cdot z_j&#x27;^{\top} \right) - \lambda_G \left( G_h \cdot G_j^{\top} \right) \right\|^2 \tag{22} \end{equation} $$</p>
+</ul>
+<h2 id="results">Results</h2>
+<p>!Pasted image 20260223171039.png Efficient integration of three omics layers in the mouse cortex by scCross.</p>
+<p>!Pasted image 20260223171101.png Benchmarking superiority of scCross in single-cell multi-omics data integration.</p>
+</article>
+
+  </main>
+</body>
+</html>

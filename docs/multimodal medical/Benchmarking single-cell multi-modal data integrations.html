@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>challenge · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>challenge</h1>
+  <div class="meta">multimodal medical · 更新于 2026-02-06</div>
+  <h2 id="challenge">challenge</h2>
+<p>An essential challenge in the context of single-cell multi-modal integration is how to effectively leverage the heterogeneity inherent in different modalities.</p>
+<h2 id="performance-of-unpaired-diagonal-integration-methods">Performance of unpaired diagonal integration methods</h2>
+<p>the majority (9 out of 14) of the unpaired scRNA and scATAC integration methods require an independently computed gene activity matrix (GAM) from the scATAC modality as the input (Supplementary Table 7). The GAM is crucial for aligning the two unpaired modalities through genes shared between the GAM and the scRNA modality.</p>
+<h3 id="embedding-accuracy">embedding accuracy</h3>
+<p>MaxFuse, SIMBA, and GLUE performed best in the BMMC Multiome p10 dataset</p>
+<h3 id="cell-alignment-accuracy">cell-alignment accuracy</h3>
+<p>GLUE outperformed all the other metrics across all datasets UnionCom and MaxFuse ranked just behind GLUE in cell-alignment accuracy however, UnionCom was applicable to only one benchmark dataset owing to its limited usability</p>
+<h2 id="robustness">Robustness</h2>
+<p>The downsampling levels for scRNA, scATAC or both modalities showed a strong correlation with the accuracy of the cell-alignment metrics At a 10% downsampling depth, GLUE was the top performer; MaxFuse and Seurat v3 CCA also demonstrated high performance for this metric. Across all downsampling levels, GLUE, Seurat v4 RPCA and bindSC achieved the highest downsample-AUC scores for robustness</p>
+<p>Overall, GLUE showed the highest performance in usability, accuracy and robustness to low sequencing depth.</p>
+</article>
+
+  </main>
+</body>
+</html>

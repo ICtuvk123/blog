@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2026-01-20</div>
+  <h2 id="background">Background</h2>
+<h2 id="problems">problems</h2>
+<ol>
+<li>existing integration approaches unrealistically assume that all cells are alignable</li>
+<li>treat prior-knowledge derived feature correspondences as fully reliable</li>
+</ol>
+<p>However, due to the destructive nature of these technologies, it may not always be possible to profile two or more modalities simultaneously in the same cell population. Although cutting-edge sequencing protocols have now enabled the joint profiling of multi-omics data, their application remains constrained by high costs and technical complexity</p>
+<h3 id="cell-alignment-accuracy--embedding-accuracy-sota">cell alignment accuracy &amp; embedding accuracy (SOTA)</h3>
+<h2 id="privilege">privilege</h2>
+<p>scCotag excels in simulated imbalance scenarios where not all cells are alignable</p>
+<h2 id="related-work">Related work</h2>
+<h3 id="diagonal-integration">diagonal integration</h3>
+<h4 id="method">method</h4>
+<ol>
+<li>relies on biological prior knowledge to link features across omic layers, thereby imputing one modality from the other</li>
+<li>some methods directly infer cell correspondences from the intra-modality geometric structure, under the assumption that a shared latent manifold structure is preserved between modalities</li>
+<li>Deep learning-based methods extend these ideas by learning low-dimensional cell representations and projecting them into a modality-shared latent space for cell alignment</li>
+</ol>
+<h4 id="problem">problem</h4>
+<ol>
+<li>priors derived from external paired datasets or from genome coordinates are inherently context-dependent and noisy</li>
+<li>In practice, this assumption is frequently violated because real-world datasets often contain modality-unique cell types and imbalanced compositions</li>
+<li>suffer from noisy priors and restrictive assumption that all cells are alignable, providing limited mechanisms to prevent over-alignment of modality-specific populations.</li>
+</ol>
+<h2 id="method">Method</h2>
+<p>!Pasted image 20260120143119.png</p>
+<h3 id="transport-method">transport method</h3>
+<p><strong>feature level and sample level</strong> !Pasted image 20260120165314.png</p>
+<h3 id="learning-cell-and-feature-representations-with-transport-plans">Learning cell and feature representations with transport plans</h3>
+<p>However, separately trained VAEs project cells into distinct latent spaces, making them incomparable. To link them, we follow the strategy proposed in [9] by introducing a prior graph G = (V, E), where V denotes the feature set and E is the edge set.</p>
+<p>!Pasted image 20260120171116.png !Pasted image 20260120215816.png !Pasted image 20260120215828.png !Pasted image 20260120215839.png !Pasted image 20260120215851.png !Pasted image 20260120215910.png</p>
+</article>
+
+  </main>
+</body>
+</html>

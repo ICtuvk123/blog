@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>系统盘存满了 · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>系统盘存满了</h1>
+  <div class="meta">编程问题 · 更新于 2026-04-16</div>
+  <h2 id="系统盘存满了">系统盘存满了</h2>
+<pre><code>du -h --max-depth=1 | sort -hr</code></pre>
+<p>可以察看哪些文件占用内存最高</p>
+<pre><code>mv /root/scMRDR /root/autodl-tmp/</code></pre>
+<p>直接把最占用内存的文件移动进入数据盘就好了</p>
+<pre><code>df . -h</code></pre>
+<p>查看还剩多少内存</p>
+<pre><code>tar -xzf file.tgz file</code></pre>
+<p>解压缩</p>
+<pre><code>tar -czf file.tgz file</code></pre>
+<p>压缩</p>
+</article>
+
+  </main>
+</body>
+</html>

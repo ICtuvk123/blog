@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2025-11-16</div>
+  <h2 id="background">Background</h2>
+<h3 id="problems">problems</h3>
+<ul>
+<li>data quality varies across different modalities and patients</li>
+</ul>
+<h3 id="solution">solution</h3>
+<ul>
+<li>We introduce a novel top-down dynamic fusion mechanism that adaptively integrates multi-modal information, addressing the variation in data quality across different modalities and patients in various medical domains.</li>
+</ul>
+<h2 id="related-work">Related work</h2>
+<h4 id="dynamic-multi-modal-fusion">Dynamic Multi-modal Fusion</h4>
+<p>LiMoE，FuseMoE，MAGGate most methods focus on traditional scenarios like visual detection, semantic segmentation, and audio-visual tasks. Evaluating each modality’s contribution and effectively fusing heterogeneous modalities is still a challenge, especially in medical multi-modal tasks.</p>
+<h2 id="method">Method</h2>
+<p>!Pasted image 20251116110512.png original has problems:</p>
+<ul>
+<li>relationship between pathology images and genetic profiles is unclear, and there is no exact mapping between them.</li>
+<li>The setting of the parameter θ requires additional effort. A reasonable value for θ varies across tasks.</li>
+<li>The values in am′ (m) are randomly predefined.</li>
+</ul>
+<h3 id="encoder">encoder</h3>
+<p>!Pasted image 20251116113519.png</p>
+<h3 id="modality-importance-calculation">Modality Importance Calculation</h3>
+<ul>
+<li>First, we compute the maximum value across the last dimension for each element, resulting in maxk(Am,n,k) ∈ RM×N .</li>
+<li>Next, we compute the average across the sequence dimension (the last dimension) of maxk(Am,n,k) to obtain the statistical information as the modality importance indicator</li>
+<li>We define the number of uninformative tokens for the m-th modality as Km = floor(s[m] × N ). Thus, we prune Km tokens in the m-th modality and impute them using intermodal tokens {xm′ }M  m′̸=m.</li>
+</ul>
+<h3 id="customized-token-fusion">Customized token fusion</h3>
+<ul>
+<li>The first-level contrastive learning objective LI uses features from the same instance as positive inputs and features from other instances as negative inputs</li>
+<li>The second-level contrastive learning objective LT uses the n-th token from different modalities of the same instance as positive inputs, while tokens from other instances serve as negative inputs</li>
+<li>!Pasted image 20251116183748.png</li>
+<li>Specifically, we apply average pooling to each xm to obtain xm ∈ RD. We then concatenate the set {xm}m M=1 to form a longer vector  z ∈ RDM . This concatenated vector z is subsequently fed into the task head for prediction.</li>
+</ul>
+<ul>
+<li>!Pasted image 20251116185833.png</li>
+</ul>
+<h3 id="improved-transformer-block">Improved Transformer Block</h3>
+<p>problem：</p>
+<ul>
+<li>However, the original token fusion can dilute the inner-modal attention weights of the self-attention mechanism</li>
+<li>When the number of modalities increases, this design is parameter inefficient</li>
+</ul>
+<h2 id="experiment">Experiment</h2>
+<p>!Pasted image 20251116191935.png !Pasted image 20251116191947.png !Pasted image 20251116191957.png !Pasted image 20251116192105.png !Pasted image 20251116192121.png</p>
+</article>
+
+  </main>
+</body>
+</html>

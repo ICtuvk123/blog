@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2025-11-27</div>
+  <h2 id="background">Background</h2>
+<h3 id="problems">problems:</h3>
+<ul>
+<li>However, graph data may contain various types of noise in downstream tasks, such as noisy edges and ambiguous node attributes</li>
+</ul>
+<h3 id="solution">solution:</h3>
+<ul>
+<li>In this paper, we show that the above problem can be well addressed by integrating uncertainty learning into the GNN adapter</li>
+</ul>
+<h2 id="related-work">Related work</h2>
+<p>Pre-training on Graphs: These methods train graph encoders via self-supervised tasks [18] to learn transferable representations, thereby improving cross-task generalization capabilities.</p>
+<p>Graph Adapter-Tuning: After reviewing the above adapters, we observe that existing works mainly focus on efficient knowledge transfer from pre-trained GNN models to the downstream tasks. However, little attention has been devoted to robust learning on downstream tasks with respect to graph noises.</p>
+<h2 id="method">Method</h2>
+<p>!Pasted image 20251127115921.png</p>
+<ol>
+<li>Message passing</li>
+<p>!Pasted image 20251127120057.png</p>
+<li>Uncertain Modeling via Gaussian Random Adapter</li>
+<p>!Pasted image 20251127120232.png !Pasted image 20251127120241.png</p>
+</ol>
+<ol>
+<li>Re-parameterized Operator</li>
+<p>!Pasted image 20251127120523.png</p>
+</ol>
+</article>
+
+  </main>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Abstract · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Abstract</h1>
+  <div class="meta">multimodal medical · 更新于 2025-11-12</div>
+  <h2 id="abstract">Abstract</h2>
+<p><strong>current problems</strong> Current paradigms predominantly rely on self-supervision within uni-modal image data, thereby neglecting the inter-modal correlations essential for effective learning of cross-modal image representations.</p>
+<p>a case to illustrate the problem:</p>
+<blockquote>
+<p>This limitation is particularly significant for naturally grouped multi-modal data, e.g., multi-parametric MRI scans for a patient undergoing various functional imaging protocols in the same study.</p>
+</blockquote>
+<p><strong>method to break it</strong> To bridge this gap, we conduct a novel multi-modal image pre-training with three proxy tasks to facilitate the learning of cross-modality representations and correlations using multi-modal brain MRI scans (over 2.4 million images in 16,022 scans of 3,755 patients), i.e., cross-modal image reconstruction, modality-aware contrastive learning, and modality template distillation</p>
+<p>!Pasted image 20251112105146.png</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this paper, we propose BrainMVP, an efficient multimodal vision pre-training method for multi-parametric brain MRI analysis.</p>
+<p>By exploiting structural similarities between MRI modalities, we design cross-modal reconstruction to capture modality correlations.</p>
+<h2 id="introduction">Introduction</h2>
+<p>It is crucial to develop novel self-supervised learning frameworks for such grouped multimodal image data, tailored to the downstream applications in the aforementioned scenarios.</p>
+<p>In the real world, another issue of model training and inference with multi-modal data is the presence of missing modalities. Obtaining a comprehensive set of modalities in mpMRI scans can be challenging due to the complexity associated with acquisition protocol and limitations in equipment capabilities.</p>
+<p><strong>method</strong> For the issue of insufficient scalability resulting from mismatched or missing modalities, we propose using unimodal MRI inputs instead of fixed modality numbers [33] during pre-training.</p>
+<p>Moreover, we propose cross-modal reconstruction via masked image modeling.</p>
+<p>Towards a more generalizable pre-training model for downstream tasks, we also extract condensed structural representations of different modalities using modality-wise data distillation.</p>
+<p>• To the best of our knowledge, BrainMVP is the first multi-modal vision pre-training paradigm that aligns the features across modalities, targeting distinctive modality-aware representations. We also collect a dataset of 16,022 mpMRI scans (3,755 patients, over 2.4 million images) to facilitate the pre-training, covering a wide range of brain MRI scans in both diseased and healthy populations.</p>
+<p>• We design two novel proxy tasks for cross-modal representation learning, i.e., cross-modal reconstruction and cross-modal contrastive learning. To improve the generalization for downstream tasks, we also introduce the third modality-wise data distillation task to extract compact templates for each modality, benefiting both the pretraining and downstream tasks.</p>
+<h2 id="related-work">Related work</h2>
+<p><strong>SSL uni-modal</strong> !Pasted image 20251112120308.png !Pasted image 20251112120329.png !Pasted image 20251112120349.png</p>
+<p>drawbacks: models pre-trained on uni-modal data often excel only in that specific modality and lack strong generalization capabilities</p>
+<p><strong>SSL mixed-modality</strong> !Pasted image 20251112120633.png PCRLv2 [62] addresses the issue of local information loss in medical images within the contrastive learning SSL paradigm by suggesting pixel recovery and feature alignment at various scales for diverse enhancement samples.</p>
+<p>!Pasted image 20251112121203.png</p>
+<p>leverages the contextual position priors to learn consistent semantic representations in pre-training and performs exceptionally well in medical images where the relative positions are relatively fixed.</p>
+<p>!Pasted image 20251112140117.png</p>
+<p>solely acting as a data augmentation strategy</p>
+<p>Although the methods above involve joint training on multi-modal data, different data sources often pose a bottleneck to the model’s cross-modal understanding.</p>
+<p>Our method, instead, employs a simple yet effective strategy of cross-modal reconstruction to learn cross-modal representations, incorporating modal complementary properties into the pre-training proxy task</p>
+<p><strong>Dataset distillation for knowledge compression</strong></p>
+<p>In this paper is inspired by performance matching methods, where distilled templates are learned via reconstructing the real modality image along the pre-training trajectories</p>
+<p>This approach first learns patient-agnostic structural representations within modalities and then integrates patient-specific modality information during downstream tasks to bridge the domain gap and enhance model generalization.</p>
+<h2 id="methods">Methods</h2>
+<h3 id="cross-modal-reconstruction">Cross-Modal Reconstruction</h3>
+<p>Pixel-level cross-modal masking. Given a uni-modal input volume Xim sampled from an mpMRI case (with Mi modalities), cross-modal masking aims to mask out a large region of Xim and replace with another modality image Xin (also sampled from Xi, n ̸= m). Specifically, we first randomly mask a region of size r × r × r in Xim, where r denotes the size of each dimension of 3D volumes. Then, we fill in the masked region with a patch cropped with the same location and size on another modality of the sampled case. Finally, we repeat the above masking-filling operation until the proportion of masked pixels over the total input volume (Xim) pixels arrives p∗. More details of the masking algorithm can be found in the supplementary materials. Cross-modal reconstruction. Let our proposed crossmodal masking strategy be Φmodal. Given that the masking operation masks a large portion of the image, the resulting masked input volume Φmodal(Xim, Xin) will contain information predominantly from Xin. The extracted representation Fenc(Φmodal(Xim, Xin)) will thus encode a significant amount of semantic information from Xin. Since we do not introduce skip connections between the encoder and decoder, we only reconstruct Xim from the latent representation Fenc(Φmodal(Xim, Xin)), which is a challenging task for natural images. However, due to the high structural similarity between different modalities in mpMRI data, with strong contrasts only in certain regions, the cross-modal reconstruction can encourage the model to learn cross-modal representations and explore the correlations between different modalities. Formally, the crossmodal reconstruction loss can be expressed as:  LCMR = ||Fdec(Fenc(Φmodal(Xim, Xin)) − Xim||2.</p>
+<h3 id="modality-wise-data-distillation">Modality-wise Data Distillation</h3>
+<p>Specifically, the learnable modality templates T = {Tm}Sm=1 sized S × H × W × D are initialized with zero, where S represents the number of modalities in the pretraining datasets. Similar to cross-modal reconstruction, the image needed for filling in Xim is Tm (m represents the corresponding modality) instead of another modality, and the remaining steps are the same. An example of learned modality templates is shown in Fig. 4, which demonstrates a compact representation of the structural information for each modality along the pre-training trajectories. Given the masking strategy for modality-wise data distillation denoted as Φdistill, the corresponding loss can be expressed as:  LMD = ||Fdec(Fenc(Φdistill(Xim, Tm)) − Xim||2 . (3)  Cross-modal reconstruction and modality-wise data distillation are performed simultaneously. The model needs to learn not only the structural information of a specific modality to form the distilled modality templates but also the transformation relationship between modalities. The representations learned by our pre-trained model are considered modality-agnostic and contain fused representations of different modalities.</p>
+<h3 id="modality-aware-contrastive-learning">Modality-aware Contrastive Learning</h3>
+<p>As described in section 3.1 and 3.2, Φmodal(Xim, Xin) and Φdistill(Xim, Tm) still contain (1 − p∗) proportion of information about Xim, we aim to keep featurelevel consistency. To this end, we use contrastive loss to close the high-dimension feature discrepancy. Given their partial semantic consistency, Φmodal(Xim, Xin) and  Φdistill(Xim, Tm) form positive pairs. This can be formalized as:  Lfim→gim = − log exp(fim · gT  im/τ )  P|B|  j=1 exp(fim · gT  jm/τ )  , (4)  where fim represents the embedding from the current modality image masked with another in the same study, while gim represents the embedding from the current modality image masked with the corresponding distilled template. |B| denotes the number of positive pairs in a batch. The loss Lgim→fim is calculated by swapping fim and gim. The total loss is the sum of both terms:  LCL = 1  2 (Lfim→gim + Lgim→fim ) . (5)  Overall loss. In summary, the total loss for the proposed multi-modal self-supervised learning scheme is a combination of LCMR, LMD, and LCL:  LSSL = 1  |B|  |B|  X  i=1  1  Mi  Mi  X  m=1  (LCMR + λMD · LMD  + λCL · LCL),  (6)  where λMD as well as λCL are coefficients for balancing the corresponding loss term contributions, and Mi denotes the number of modalities of study/case i.</p>
+<p>!Pasted image 20251112171617.png</p>
+<h2 id="experiment">experiment</h2>
+<p>!Pasted image 20251112173521.png !Pasted image 20251112175430.png</p>
+<p>!Pasted image 20251112175635.png !Pasted image 20251112175649.png <strong>label efficiency</strong> !Pasted image 20251112181125.png</p>
+</article>
+
+  </main>
+</body>
+</html>

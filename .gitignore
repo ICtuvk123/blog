@@ -1,0 +1,16 @@
+.obsidian/
+CET6/
+Excalidraw/
+multimodal medical/
+点集拓扑/
+编程问题/
+记忆抒情类散文/
+scripts/
+BLOG_DEPLOY.md
+作文.md
+*.tmp
+*.bak
+*.swp
+__pycache__/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2026-02-25</div>
+  <h2 id="background">Background</h2>
+<p>For example, cell type annotation can be considered as classifying each cell to the cell type that maximizes the conditional likelihood of its expression (Li et al., 2023); and imputation can be treated as drawing samples from the learned posterior given the partially observed expression data</p>
+<p>An expected model would bring out accurate distribution estimation and high-quality sample generation. Meanwhile, better conditioning strategies are desired to trade off the influence across different conditions.</p>
+<h2 id="method">Method</h2>
+<h3 id="single-cell-tasks-as-posterior-modeling">SINGLE-CELL TASKS AS POSTERIOR MODELING</h3>
+<h4 id="cell-labeling">Cell labeling</h4>
+<p>we formulate the posterior with the Bayesian theorem: $$ \begin{equation} p(C_{\mathrm{label}} \mid X) = \frac{p(C_{\mathrm{label}})\, p(X \mid C_{\mathrm{label}})} {\mathbb{E}_{C_{\mathrm{label}} \sim p_{C_{\mathrm{label}}}} \left[ p(X \mid C_{\mathrm{label}}) \right]} = \frac{p(X \mid C_{\mathrm{label}})} {\int p(X \mid C_{\mathrm{label}})\, dC_{\mathrm{label}} }, \tag{1} \end{equation} $$ Consequently, the problem shifts from estimating label posterior to approximating expression posterior</p>
+<h4 id="expression-completion">Expression completion</h4>
+<p>In the settings, we denote the observed expression as $M \odot X$, where $\odot$ denotes matrix element-wise multiplication and $M \in \{0,1\}^{n \times m}$ is the element-wise indicator with ones be observed and zeros be missing. The task is defined to estimate the posterior $$ p\big( (J_{n,m} - M) \odot X \mid M \odot X \big), $$ where $J_{n,m}$ is an all-ones matrix of dimensions $n \times m$. Equivalently, we write the objective as $$ \begin{equation} p(X \mid M \odot X). \tag{2} \end{equation} $$</p>
+<h4 id="knowledge-transfer">Knowledge transfer</h4>
+<p>The knowledge transfer task can be formulated as: estimate $p(X | \mathbb{C}_t)$ given $p(X|\mathbb{C}_s)$</p>
+<h4 id="a-general-objective">A general objective</h4>
+<p>$$p(X | C), C \in \mathbb{C} = \{C_{label}\} \cup \{M \odot X \} \cup \mathbb{C}_s$$</p>
+<h3 id="architecture-overview">Architecture overview</h3>
+<p>!Pasted image 20260225104526.png $\textbf{Embedder.}$We use a linear mapping $W \in \mathbb{R}^{m \times d}$ to project the noised gene expression $x_t \in \mathbb{R}^m$ into $\mathbb{R}^d$ and further mix it with the sinusoidal time embedding (Appendix C.1) to inject diffusion time step information, following previous work (Ho et al., 2020). $$ \begin{equation} \phi(x_t, t) = x_t W + \mathrm{TimeEmbed}(t). \tag{10} \end{equation} $$ $\textbf{Conditioner.}$The goal of each conditioner is to extract a set of $L$ numerical representations of an input condition $c$, where $L$ is the number of unique conditions. Among these representations, each is used as the basis for the key and value embeddings in the cross-attention encoding step, as described in the next section. Formally, each conditioner $\psi_f$ is a multilayer perceptron (MLP) that converts the raw representation extracted by $f$ into the final condition representation set.\footnote{Set size is $L$.} $$ \begin{equation} \psi_f(c) = \left\{ \psi_f^{(i)}(c) \right\}_{i \in \{1,\dots,L\}} = \left\{ \mathrm{MLP}_i\big(f(c)\big) \right\}_{i \in \{1,\dots,L\}}. \tag{11} \end{equation} $$ where $f \in \mathcal{F}$ is a function that maps an input condition into a $d$-dimensional vector and $\mathcal{F}$ is the set of mappings. The mapping can be designed to suit the specific needs of different input types, including partially masked expression, class labels of cells, and external prior information. $\textbf{Encoder.}$Once the input embedding $\phi(x_t, t)$ and the condition representations $\{\psi_f(c)\}_{f \in \mathcal{F}}$ are calculated, we combine them through multiple layers of cross-attention (Appendix C.3): $$ \begin{equation} \mathbf{h}^{(l+1)} = \mathrm{CrossAttn}^{(l)} \left( \mathbf{h}^{(l)}, \{\psi_f^{(l)}(c)\}_{f \in \mathcal{F}} \right). \tag{12} \end{equation} $$ $\textbf{Decoder.}$Finally, the cell latent embedding is linearly projected back to the gene expression space to recover the clean expression signals $x_0$. We follow Lopez et al. (2018) and mix in an additional learnable batch embedding with the latent embedding according to the batch label of the input cell. This approach can better disentangle the non-biological variations in the data. $$ \begin{equation} \mathcal{D}\big(\mathbf{h}^{(L)}, c_{\mathrm{batch}}\big) = \left( \mathbf{h}^{(L)} + \mathrm{BatchEmbed}(c_{\mathrm{batch}}) \right) W_d. \tag{13} \end{equation} $$ Combining the above components, we summarize the full $\textit{scDiff}$ model in Equation~14: $$ \begin{equation} x_{\theta}(x_t, c, t) = \mathcal{D} \Big( \mathcal{E}\big( \phi(x_t, t), \{\psi_f(c)\}_{f \in \mathcal{F}} \big) \Big). \tag{14} \end{equation} $$</p>
+</article>
+
+  </main>
+</body>
+</html>

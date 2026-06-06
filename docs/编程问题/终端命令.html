@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>查看当前目录下的 h5ad 文件 · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>查看当前目录下的 h5ad 文件</h1>
+  <div class="meta">编程问题 · 更新于 2026-01-21</div>
+  <h2 id="查看当前目录下的-h5ad-文件">查看当前目录下的 h5ad 文件</h2>
+<pre><code>!ls *.h5ad</code></pre>
+<h2 id="创建新环境">创建新环境</h2>
+<pre><code>conda create -n scMRDR python=3.11 -c conda-forge -y</code></pre>
+<blockquote>
+<p>创建conda</p>
+</blockquote>
+<pre><code>pip install -r requirements.txt</code></pre>
+<blockquote>
+<p>约束文件</p>
+</blockquote>
+<pre><code>pip install ipykernel</code></pre>
+<blockquote>
+<p>注册内核</p>
+</blockquote>
+<h3 id="打开tensorboard">打开tensorboard</h3>
+<pre><code>tensorboard --logdir=&quot;.\runs&quot;</code></pre>
+<h3 id="ssh推送">SSH推送</h3>
+<pre><code>ssh-keygen -t ed25519 -C &quot;ictuvk123@example.com&quot;</code></pre>
+<pre><code>cat ~/.ssh/id_ed25519.pub</code></pre>
+<p>把密钥添加至仓库</p>
+<pre><code>git remote set-url origin git@github.com:ICtuvk123/scMRDR.git</code></pre>
+<pre><code>git push -u origin main</code></pre>
+<h3 id="拉取更新后的仓库">拉取更新后的仓库</h3>
+<pre><code>git fetch origin
+git diff HEAD origin/main
+git merge origin/main</code></pre>
+<h3 id="配置网络环境">配置网络环境</h3>
+<pre><code>ssh -R 17890:127.0.0.1:7897 root@connect.nmb1.seetacloud.com</code></pre>
+</article>
+
+  </main>
+</body>
+</html>

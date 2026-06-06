@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2026-02-25</div>
+  <h2 id="background">Background</h2>
+<p>most available datasets are unpaired : large imaging collections with reconstructed shapes and, separately, large single-cell RNA-seq atlases. Unlocking the biology requires principled methods that can connect these modalities without joint measurements</p>
+<p>Only a small fraction of genes directly influence morphological features, so information is intrinsically imbalanced across modalities</p>
+<h2 id="related-work">Related work</h2>
+<p>GEX–ATAC and GEX–protein have natural anchors (i.e., regulatory links and protein readouts) supporting feature-level correspondence [6]. Methods built for such settings (e.g. SCOT [11], cross-modal autoencoders [62]) tend to assume symmetric information and therefore underperform on morphology–GEX.</p>
+<h2 id="method">Method</h2>
+<h2 id="overview">overview</h2>
+<p>!Pasted image 20260224093833.png Loss Function $$ \begin{equation} \mathcal{L}_{\text{total}} = \lambda_{\text{recon}} \cdot \mathcal{L}_{\text{recon}}</p>
+<ul>
+<li>\lambda_{\text{KL}} \cdot \mathcal{L}_{\text{KL}}</li>
+<li>\lambda_{\text{GAN}} \cdot \mathcal{L}_{\text{GAN}}</li>
+<li>\lambda_{\text{GW}} \cdot \mathcal{L}_{\text{GW}}</li>
+<li>\lambda_{\text{prior}} \cdot \mathcal{L}_{\text{prior}},</li>
+<p>\tag{1} \end{equation} $$</p>
+</ul>
+<p>$$ \begin{equation} \mathcal{L}_{\mathrm{GW}} = \min_{T \in \Pi} \sum_{i,j,k,l} \left( D_{ij}^{(A)} - D_{kl}^{(B)} \right)^2 \, T_{ik} \, T_{jl}. \tag{5} \end{equation} $$</p>
+</article>
+
+  </main>
+</body>
+</html>

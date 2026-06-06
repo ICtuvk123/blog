@@ -1,0 +1,79 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f7f4ef;
+  --paper: #fffaf2;
+  --text: #24211d;
+  --muted: #6e675c;
+  --line: #ded4c6;
+  --accent: #7c4d28;
+  --code: #efe6d8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171512;
+    --paper: #201d18;
+    --text: #eee4d6;
+    --muted: #b9ad9d;
+    --line: #3c352c;
+    --accent: #dfa96f;
+    --code: #2d2822;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.75 "LXGW WenKai", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
+}
+a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offset: .18em; }
+.site-header {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 20px 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+.brand {
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 22px 20px 72px;
+}
+.hero, article, .panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: clamp(22px, 4vw, 42px);
+  box-shadow: 0 14px 40px rgb(0 0 0 / .06);
+}
+.hero h1, article h1 { margin-top: 0; line-height: 1.2; }
+.meta { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+.post-list { list-style: none; padding: 0; margin: 24px 0 0; }
+.post-list li { border-top: 1px solid var(--line); padding: 14px 0; }
+.post-list a { font-weight: 650; }
+.category { color: var(--muted); font-size: 14px; margin-left: 8px; }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 18px 0;
+  padding: 2px 0 2px 18px;
+  color: var(--muted);
+}
+pre, code {
+  background: var(--code);
+  border-radius: 8px;
+  font-family: Consolas, "SFMono-Regular", monospace;
+}
+code { padding: 1px 5px; }
+pre { padding: 16px; overflow-x: auto; }
+pre code { padding: 0; background: transparent; }
+img { max-width: 100%; border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; overflow: auto; }
+th, td { border: 1px solid var(--line); padding: 8px 10px; }

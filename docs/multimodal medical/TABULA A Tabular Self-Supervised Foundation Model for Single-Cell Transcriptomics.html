@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2025-11-29</div>
+  <h2 id="background">Background</h2>
+<h3 id="problems">problems</h3>
+<ul>
+<li>overlook the tabular nature of single-cell data and raise significant privacy concerns</li>
+</ul>
+<h3 id="solutions">solutions</h3>
+<ul>
+<li>a foundation model designed for single-cell transcriptomics, which integrates a novel tabular modeling objective and federated learning framework to enable privacy-preserving pretraining across decentralized datasets.</li>
+</ul>
+<h4 id="innovations">innovations:</h4>
+<ul>
+<li>First, TABULA formulates single-cell pretraining as a self-supervised tabular learning problem, directly modeling the cell-by-gene tabular structure.</li>
+<li>TABULA is trained in a federated learning setting not only to preserve data privacy across institutions or tissue datasets, but also to enable tissue-specific embeddings by decoupling the training of a shared tabular transformer from client-specific embedders</li>
+<li>extensive experiments demonstrate the effectiveness of TABULA.</li>
+<li>TABULA provides a generalizable framework that combines federated learning with tabular modeling, enabling collaborative model training without data sharing.</li>
+</ul>
+<h2 id="related-work">Related work</h2>
+<p>Recent advances in single-cell foundation models (FMs) have adapted techniques from natural language processing to learn transferable representations from large-scale transcriptomic data. Notable models include Geneformer [1], scFoundation [2], scGPT [4], and CellPLM [3]. These models predominantly employ centralized training and language modeling objectives such as autoregressive (AR) [21] or masked language modeling (MLM) [22], which ignore the intrinsic tabular structure of single-cell data. Moreover, those models reply on centralized training thus raising concerns about data privacy and ethics from public single-cell data. Prior work has shown that scRNA-seq data is vulnerable to linkage attacks [6, 7].</p>
+<h2 id="method">Method</h2>
+<p>!Pasted image 20251129085100.png !Pasted image 20251129085150.png</p>
+<p>!Pasted image 20251129085215.png !Pasted image 20251129085303.png</p>
+<p>!Pasted image 20251129085324.png !Pasted image 20251129091557.png $\alpha = 0.03$</p>
+<p>Embedder +  transformer -&gt; downstream</p>
+<h2 id="experiment">Experiment</h2>
+<p>!Pasted image 20251129110408.png !Pasted image 20251129112526.png !Pasted image 20251129112535.png!Pasted image 20251129112546.png !Pasted image 20251129113002.png !Pasted image 20251129113351.png !Pasted image 20251129113624.png</p>
+</article>
+
+  </main>
+</body>
+</html>

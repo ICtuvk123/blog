@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Background · Thoughts</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">Thoughts</a>
+    
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Background</h1>
+  <div class="meta">multimodal medical · 更新于 2026-02-26</div>
+  <h2 id="background">Background</h2>
+<p>However, these paired datasets are technically challenging and costly to obtain</p>
+<h2 id="method">Method</h2>
+<p>!Pasted image 20260226093417.png Different from existing methods that only consider common genes across datasets, we also take advantage of genes unique to each dataset, typically capturing cell-type heterogeneity not present in common genes</p>
+<h2 id="discussion">Discussion</h2>
+<h4 id="gene-score">gene score</h4>
+<p>Given that our integration of scATAC is based on gene activity score, we also tested uniPort’s performance when gene activity score is calculated in different approaches. We employed two methods to form the gene activity score introduced by Signac58 and MAESTRO37, respectively. Signac defines gene activity score for scATAC as the read count in the gene body and promoter region. MAESTRO calculates gene activity score as a weighted sum of nearby cis-regulatory elements (REs), where the weight is an exponentially decreasing function of distances of REs and target genes. The integration result showed that uniPort achieved better performance on the gene activity score by MAESTRO with all evaluated scores higher than that by Signac (Supplementary Fig. 13), which demonstrated the importance of modeling the gene activity score.</p>
+<p>$$ \begin{equation} \mathcal{L}_{\mathrm{ELBO}}^{*} = \mathbb{E}_{\psi(z \mid x)} \left\{ \log \phi(x \mid z) + \lambda_s \left( \log \phi_x(x^{s} \mid z) + \log \phi_y(y^{s} \mid z) \right) \right\} - \lambda_{D_{\mathrm{KL}}} D_{\mathrm{KL}}\big(\psi(z \mid x) \,\|\, p(z)\big). \tag{2} \end{equation} $$</p>
+<p>$$\begin{equation} \mathbf{T}^<em> = \arg\min_{\mathbf{T} \in \mathbb{R}_+^{B_x \times B_y}} \left\langle \mathbf{C}, \mathbf{T} \right\rangle - \epsilon H(\mathbf{T}) + \rho D_{\mathrm{KL}}\big(\mathbf{T}\mathbf{1}_{B_y} \,\|\, \mathbf{a}\big) + \rho D_{\mathrm{KL}}\big(\mathbf{T}^\top \mathbf{1}_{B_x} \,\|\, \mathbf{b}\big), \tag{4} \end{equation}$$ $$ \begin{equation} \alpha^{(l+1)} = \left( \frac{\mathbf{a}}{\mathbf{G}\beta^{(l)}} \right)^{\frac{\rho}{\rho+\epsilon}}, \quad \beta^{(l+1)} = \left( \frac{\mathbf{b}}{\mathbf{G}^{\top}\alpha^{(l)}} \right)^{\frac{\rho}{\rho+\epsilon}}, \tag{5} \end{equation} $$ starting from $\beta^{(0)} = \frac{1}{B_x}\mathbf{1}_{B_x}$, where $$ G_{ij} = T_{ij}^{(l)} e^{-C_{ij}/\epsilon}. $$ The optimal Minibatch-UOT plan is $$ T_{ij}^{</em>} = \alpha_i G_{ij} \beta_j. $$ Therefore, the Minibatch-UOT loss is given by $$ \begin{equation} \mathcal{L}_{\mathrm{UOT}}^{<em>} = \sum_{i,j} C_{ij} \, T_{ij}^{</em>}. \tag{6} \end{equation} $$ The total loss function minimized by $\textit{uniPort}$ is formulated as $$ \begin{equation} \mathcal{L}_{\mathrm{uniPort}} =</p>
+<ul>
+<li>\mathcal{L}_{\mathrm{ELBO}}^{*}</li>
+<p>+ \gamma \mathcal{L}_{\mathrm{UOT}}^{*}. \tag{7} \end{equation} $$</p>
+</ul>
+</article>
+
+  </main>
+</body>
+</html>
