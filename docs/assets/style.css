@@ -31,47 +31,46 @@ body {
 a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offset: .18em; }
 .wave-scene {
   position: fixed;
-  inset: auto 0 0;
-  height: 34vh;
-  min-height: 220px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 190px;
   pointer-events: none;
   overflow: hidden;
-  z-index: -1;
+  z-index: 0;
+  opacity: .95;
 }
-.wave {
+.waves {
   position: absolute;
-  left: 50%;
-  bottom: -58%;
-  width: 180vw;
-  height: 180vw;
-  min-width: 1300px;
-  min-height: 1300px;
-  border-radius: 43%;
-  transform: translateX(-50%);
-  opacity: .32;
-  animation: wave-rotate 24s linear infinite;
+  left: 0;
+  bottom: 0;
+  width: 220%;
+  height: 100%;
+  animation: wave-slide 14s linear infinite;
+}
+.wave-path {
+  transform-origin: center;
+  will-change: transform;
 }
 .wave-one {
-  background: color-mix(in srgb, var(--accent) 34%, transparent);
+  fill: color-mix(in srgb, #4f9fb6 42%, transparent);
+  animation: wave-sway 7s ease-in-out infinite alternate;
 }
 .wave-two {
-  bottom: -64%;
-  border-radius: 46%;
-  background: color-mix(in srgb, #4a90a4 28%, transparent);
-  opacity: .24;
-  animation-duration: 31s;
-  animation-direction: reverse;
+  fill: color-mix(in srgb, var(--accent) 30%, transparent);
+  animation: wave-sway 9s ease-in-out infinite alternate-reverse;
 }
 .wave-three {
-  bottom: -70%;
-  border-radius: 40%;
-  background: color-mix(in srgb, var(--paper) 70%, transparent);
-  opacity: .44;
-  animation-duration: 39s;
+  fill: color-mix(in srgb, var(--paper) 82%, transparent);
+  animation: wave-sway 11s ease-in-out infinite alternate;
 }
-@keyframes wave-rotate {
-  from { transform: translateX(-50%) rotate(0deg); }
-  to { transform: translateX(-50%) rotate(360deg); }
+@keyframes wave-slide {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes wave-sway {
+  from { transform: translateY(0); }
+  to { transform: translateY(-18px); }
 }
 .site-header {
   max-width: 980px;
@@ -81,6 +80,8 @@ a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offse
   justify-content: space-between;
   gap: 16px;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 .brand {
   color: var(--text);
@@ -92,6 +93,8 @@ a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offse
   max-width: 980px;
   margin: 0 auto;
   padding: 22px 20px 72px;
+  position: relative;
+  z-index: 1;
 }
 .hero, article, .panel {
   background: var(--paper);
@@ -300,5 +303,5 @@ th, td { border: 1px solid var(--line); padding: 8px 10px; }
   .hero { min-height: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .wave { animation: none; }
+  .waves, .wave-path { animation: none; }
 }
