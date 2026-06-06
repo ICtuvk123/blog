@@ -305,3 +305,19 @@ th, td { border: 1px solid var(--line); padding: 8px 10px; }
 @media (prefers-reduced-motion: reduce) {
   .waves, .wave-path { animation: none; }
 }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(rgb(247 244 239 / .78), rgb(247 244 239 / .9)),
+    url("background.jpg") center / cover no-repeat;
+  z-index: -2;
+}
+@media (prefers-color-scheme: dark) {
+  body::before {
+    background:
+      linear-gradient(rgb(23 21 18 / .78), rgb(23 21 18 / .9)),
+      url("background.jpg") center / cover no-repeat;
+  }
+}
