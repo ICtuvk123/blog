@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>小游戏 · Thoughts</title>
+  <title>小游戏 路 Thoughts</title>
   <meta name="description" content="负责记录想法的个人空间。">
   <link rel="stylesheet" href="assets/style.css">
   <script>
@@ -23,22 +23,22 @@
     <a class="brand" href=".">Thoughts</a>
     
     <nav class="nav">
-      <a href=".">首页</a>
-      <a href="archive.html">归档</a>
-      <a href="game.html">游戏</a>
-      <a href="about.html">关于</a>
+      <a href=".">棣栭〉</a>
+      <a href="archive.html">褰掓。</a>
+      <a href="game.html">娓告垙</a>
+      <a href="about.html">鍏充簬</a>
     </nav>
 
   </header>
   <main class="container">
     
 <section class="game-shell">
-  <div class="game-board" id="gameBoard" tabindex="0" aria-label="接住落星小游戏">
-    <div class="catcher" id="catcher"></div>
+  <div class="game-board" id="gameBoard" aria-label="点星星小游戏">
+    <button class="target-star hidden" id="targetStar" type="button" aria-label="点我得分">✦</button>
     <div class="game-message" id="gameMessage">
       <div>
-        <h1>接住落星</h1>
-        <p>用方向键、A/D 或鼠标移动托盘。接住星星得分，漏掉 5 个结束。</p>
+        <h1>点星星</h1>
+        <p>30 秒内尽量点击出现的星星。星星会换位置，点中一次加 1 分。</p>
         <button class="button" id="startGame" type="button">开始游戏</button>
       </div>
     </div>
@@ -46,155 +46,98 @@
   <aside class="panel game-hud">
     <div>
       <div class="eyebrow">Tiny Game</div>
-      <h1>接住落星</h1>
-      <p class="note">一个放在博客里的轻量小游戏。适合短暂休息，不依赖任何外部库。</p>
+      <h1>点星星</h1>
+      <p class="note">规则很简单：看到星星就点。没有方向键，没有复杂操作。</p>
     </div>
     <div class="stat-grid">
       <div class="stat"><strong id="score">0</strong><span>得分</span></div>
-      <div class="stat"><strong id="missed">0</strong><span>漏掉</span></div>
+      <div class="stat"><strong id="timeLeft">30</strong><span>剩余秒数</span></div>
     </div>
     <div class="game-controls">
       <button class="button" id="restartGame" type="button">重新开始</button>
       <a class="button secondary" href=".">回首页</a>
     </div>
-    <p class="note">提示：连续接住会逐步加速。</p>
+    <p class="note">目标：30 秒内超过 20 分。</p>
   </aside>
 </section>
 <script>
 (() => {
   const board = document.getElementById("gameBoard");
-  const catcher = document.getElementById("catcher");
+  const star = document.getElementById("targetStar");
   const scoreEl = document.getElementById("score");
-  const missedEl = document.getElementById("missed");
+  const timeEl = document.getElementById("timeLeft");
   const message = document.getElementById("gameMessage");
   const start = document.getElementById("startGame");
   const restart = document.getElementById("restartGame");
 
   let score = 0;
-  let missed = 0;
+  let timeLeft = 30;
   let running = false;
-  let catcherX = 0.5;
-  let stars = [];
-  let lastTime = 0;
-  let spawnTimer = 0;
-
-  function reset() {
-    score = 0;
-    missed = 0;
-    stars.forEach((star) => star.el.remove());
-    stars = [];
-    spawnTimer = 0;
-    catcherX = 0.5;
-    updateHud();
-    updateCatcher();
-  }
+  let timer = null;
 
   function updateHud() {
     scoreEl.textContent = score;
-    missedEl.textContent = missed;
+    timeEl.textContent = timeLeft;
   }
 
-  function updateCatcher() {
-    catcher.style.left = `${catcherX * 100}%`;
+  function moveStar() {
+    const boardRect = board.getBoundingClientRect();
+    const padding = 58;
+    const x = padding + Math.random() * Math.max(1, boardRect.width - padding * 2);
+    const y = padding + Math.random() * Math.max(1, boardRect.height - padding * 2);
+    star.style.left = `${x}px`;
+    star.style.top = `${y}px`;
   }
 
-  function spawnStar() {
-    const el = document.createElement("div");
-    el.className = "star";
-    el.textContent = "✦";
-    board.appendChild(el);
-    stars.push({
-      el,
-      x: Math.random() * 0.92 + 0.04,
-      y: -0.08,
-      speed: 0.18 + Math.min(score, 40) * 0.004 + Math.random() * 0.08,
-    });
+  function showPop(x, y) {
+    const pop = document.createElement("div");
+    pop.className = "pop-text";
+    pop.textContent = "+1";
+    pop.style.left = `${x}px`;
+    pop.style.top = `${y}px`;
+    board.appendChild(pop);
+    window.setTimeout(() => pop.remove(), 600);
   }
 
-  function gameOver() {
+  function endGame() {
     running = false;
+    window.clearInterval(timer);
+    star.classList.add("hidden");
     message.classList.remove("hidden");
-    message.querySelector("h1").textContent = "游戏结束";
-    message.querySelector("p").textContent = `最终得分：${score}。点击按钮再来一局。`;
+    message.querySelector("h1").textContent = "时间到";
+    message.querySelector("p").textContent = `最终得分：${score}。${score >= 20 ? "不错。" : "再来一局会更高。"}`;
     start.textContent = "再来一局";
   }
 
-  function tick(time) {
-    if (!running) return;
-    const delta = Math.min((time - lastTime) / 1000, 0.04);
-    lastTime = time;
-    spawnTimer -= delta;
-    if (spawnTimer <= 0) {
-      spawnStar();
-      spawnTimer = Math.max(0.35, 0.9 - score * 0.015);
-    }
-
-    const boardRect = board.getBoundingClientRect();
-    const catcherRect = catcher.getBoundingClientRect();
-    const nextStars = [];
-
-    for (const star of stars) {
-      star.y += star.speed * delta;
-      star.el.style.left = `${star.x * 100}%`;
-      star.el.style.top = `${star.y * 100}%`;
-      const starRect = star.el.getBoundingClientRect();
-      const caught =
-        starRect.bottom >= catcherRect.top &&
-        starRect.top <= catcherRect.bottom &&
-        starRect.right >= catcherRect.left &&
-        starRect.left <= catcherRect.right;
-
-      if (caught) {
-        score += 1;
-        star.el.remove();
-        updateHud();
-      } else if (starRect.top > boardRect.bottom) {
-        missed += 1;
-        star.el.remove();
-        updateHud();
-      } else {
-        nextStars.push(star);
-      }
-    }
-
-    stars = nextStars;
-    if (missed >= 5) {
-      gameOver();
-      return;
-    }
-    requestAnimationFrame(tick);
-  }
-
   function begin() {
-    reset();
+    score = 0;
+    timeLeft = 30;
     running = true;
+    updateHud();
     message.classList.add("hidden");
-    board.focus();
-    lastTime = performance.now();
-    requestAnimationFrame(tick);
+    star.classList.remove("hidden");
+    moveStar();
+    window.clearInterval(timer);
+    timer = window.setInterval(() => {
+      timeLeft -= 1;
+      updateHud();
+      if (timeLeft <= 0) endGame();
+    }, 1000);
   }
 
-  board.addEventListener("mousemove", (event) => {
-    const rect = board.getBoundingClientRect();
-    catcherX = Math.min(0.96, Math.max(0.04, (event.clientX - rect.left) / rect.width));
-    updateCatcher();
-  });
-
-  window.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
-      catcherX = Math.max(0.04, catcherX - 0.06);
-      updateCatcher();
-    }
-    if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
-      catcherX = Math.min(0.96, catcherX + 0.06);
-      updateCatcher();
-    }
-    if (event.key === " " && !running) begin();
+  star.addEventListener("click", () => {
+    if (!running) return;
+    score += 1;
+    updateHud();
+    const rect = star.getBoundingClientRect();
+    const boardRect = board.getBoundingClientRect();
+    showPop(rect.left - boardRect.left + rect.width / 2, rect.top - boardRect.top);
+    moveStar();
   });
 
   start.addEventListener("click", begin);
   restart.addEventListener("click", begin);
-  updateCatcher();
+  updateHud();
 })();
 </script>
 
