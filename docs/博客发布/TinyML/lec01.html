@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pruning 路 Thoughts</title>
+  <meta name="description" content="负责记录想法的个人空间。">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="wave-scene" aria-hidden="true">
+    <svg class="waves" viewBox="0 0 1440 220" preserveAspectRatio="none">
+      <path class="wave-path wave-one" d="M0,96 C160,28 300,28 480,96 C650,160 820,160 1000,96 C1160,34 1300,34 1440,96 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-two" d="M0,128 C180,78 330,78 520,128 C690,176 860,176 1040,128 C1200,84 1320,84 1440,128 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-three" d="M0,158 C170,118 340,118 520,158 C700,198 880,198 1060,158 C1220,122 1340,122 1440,158 L1440,220 L0,220 Z"></path>
+    </svg>
+  </div>
+  <header class="site-header">
+    <a class="brand" href="../../">Thoughts</a>
+    
+    <nav class="nav">
+      <a href="../../">棣栭〉</a>
+      <a href="../../archive.html">褰掓。</a>
+      <a href="../../game.html">娓告垙</a>
+      <a href="../../about.html">鍏充簬</a>
+    </nav>
+
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Pruning</h1>
+  <div class="meta">TinyML 路 鏇存柊浜?2026-06-25</div>
+  <h1 id="pruning">Pruning</h1>
+<p><strong>MLPerf:</strong> 评价AI硬件的指标 在嵌入式设备中，我们往往需要更低功耗，这就需要我们尽可能减少模型的内存移动操作，因为内存移动的功耗可能达到算术运算功耗的两倍以上！ !Pasted image 20260625232318.png 如上图所示，模型的剪枝其实就是讲原来对权重 $W$ 的优化转成对于一个新的 $W_p$ 的优化，这个 $W_p$ 要满足非零项尽可能的少的约束 !Pasted image 20260625232635.png 有效的剪枝一般还可能提高模型的正确率(实验证明)，但一般是要通过先选定去掉哪些权重，然后重新微调剩下部分的权重才会避免这样的正确率降低</p>
+<h2 id="fine-grained--coarse-grained-pruning">Fine-grained &amp; Coarse-grained pruning</h2>
+<p>!Pasted image 20260625232923.png 剪枝可以分为两类，一类是细粒度剪枝，一类是粗粒度，如上图所示，细粒度剪枝就是更加的没有规律，这使得剪枝方式更加自由，但是这样也会面临无法利用GPU进行并行计算的问题，而粗粒度的剪枝就是把这个矩阵的一整行都去掉，这样可能会意外丢掉有用的权重，但是可以利用GPU的高效并行计算</p>
+<h2 id="pruning-strategy">Pruning strategy</h2>
+<h3 id="magnitude-based-pruning">magnitude-based pruning</h3>
+<p>首先我们能够想到的一种最自然的剪枝策略就是剪掉为0的那些权重，在实际情况中，一般剪掉绝对值小的那些权重 这种策略既支持细粒度，又可支持粗粒度，粗粒度就是直接计算要剪掉的一整行的范数即可</p>
+<h3 id="scaling-based-pruning">scaling-based pruning</h3>
+<p>另一种剪枝策略，是通过scaling因子来剪的，比如一个过滤层要缩放后到达下一个channel，那我们可以直接剪掉缩放因子绝对值接近0的，缩放因子可以由神经网络预测也可以由缩放系数(做normalization时候的)给出</p>
+<h3 id="selection-of-neurons-to-prune">Selection of Neurons to Prune</h3>
+<p>!Pasted image 20260625234245.png 从另一个角度看，去掉一个neuron或者一个channel其实和去掉一整层权重也是一样的效果，所以当这个neuron接近0的时候我们也可以去掉它(而这样的激活值在经过ReLU过后显然是有非常多为0的) !Pasted image 20260625234510.png 例如上述例子，我们可以直接去掉零值占比最大的激活层进行剪枝</p>
+<h3 id="regression-based-pruning">Regression-based pruning</h3>
+<p>!Pasted image 20260625234558.png另一种剪枝方法，和矩阵运算有关，我们如上图所示，当我们同时减掉某个激活层的对应列和权重的对应行的时候，这个矩阵乘法运算结果的维度仍然保持不变，我们由矩阵运算定义可以知道这个结果是由哪部分相乘组成的，而我们的剪枝目标，就是让剪完枝之后的输出结果尽可能和原来的相近，我们是通过在原始的乘积分解前面加一个 $\beta$ 系数(每个都要加)，然后看哪一个 $\beta$ 最接近0就把对应的部分剪掉，然后冲新优化 $W$ 这样就在剪枝的同时还保证了模型的输出变化尽可能的小</p>
+</article>
+
+  </main>
+</body>
+</html>
