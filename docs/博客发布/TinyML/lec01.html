@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pruning 路 Thoughts</title>
+  <title>Pruning · Thoughts</title>
   <meta name="description" content="负责记录想法的个人空间。">
   <link rel="stylesheet" href="../../assets/style.css">
   <script>
@@ -23,10 +23,10 @@
     <a class="brand" href="../../">Thoughts</a>
     
     <nav class="nav">
-      <a href="../../">棣栭〉</a>
-      <a href="../../archive.html">褰掓。</a>
-      <a href="../../game.html">娓告垙</a>
-      <a href="../../about.html">鍏充簬</a>
+      <a href="../../">首页</a>
+      <a href="../../archive.html">归档</a>
+      <a href="../../game.html">游戏</a>
+      <a href="../../about.html">关于</a>
     </nav>
 
   </header>
@@ -34,7 +34,7 @@
     
 <article>
   <h1>Pruning</h1>
-  <div class="meta">TinyML 路 鏇存柊浜?2026-06-25</div>
+  <div class="meta">TinyML · 更新于 2026-06-25</div>
   <h1 id="pruning">Pruning</h1>
 <p><strong>MLPerf:</strong> 评价AI硬件的指标 在嵌入式设备中，我们往往需要更低功耗，这就需要我们尽可能减少模型的内存移动操作，因为内存移动的功耗可能达到算术运算功耗的两倍以上！ !Pasted image 20260625232318.png 如上图所示，模型的剪枝其实就是讲原来对权重 $W$ 的优化转成对于一个新的 $W_p$ 的优化，这个 $W_p$ 要满足非零项尽可能的少的约束 !Pasted image 20260625232635.png 有效的剪枝一般还可能提高模型的正确率(实验证明)，但一般是要通过先选定去掉哪些权重，然后重新微调剩下部分的权重才会避免这样的正确率降低</p>
 <h2 id="fine-grained--coarse-grained-pruning">Fine-grained &amp; Coarse-grained pruning</h2>
