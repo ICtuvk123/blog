@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TinyML Model Compression: From Pruning Ratios to Sparse Execution · Thoughts</title>
+  <meta name="description" content="负责记录想法的个人空间。">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="wave-scene" aria-hidden="true">
+    <svg class="waves" viewBox="0 0 1440 220" preserveAspectRatio="none">
+      <path class="wave-path wave-one" d="M0,96 C160,28 300,28 480,96 C650,160 820,160 1000,96 C1160,34 1300,34 1440,96 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-two" d="M0,128 C180,78 330,78 520,128 C690,176 860,176 1040,128 C1200,84 1320,84 1440,128 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-three" d="M0,158 C170,118 340,118 520,158 C700,198 880,198 1060,158 C1220,122 1340,122 1440,158 L1440,220 L0,220 Z"></path>
+    </svg>
+  </div>
+  <header class="site-header">
+    <a class="brand" href="../../">Thoughts</a>
+    
+    <nav class="nav">
+      <a href="../../">首页</a>
+      <a href="../../archive.html">归档</a>
+      <a href="../../game.html">游戏</a>
+      <a href="../../about.html">关于</a>
+    </nav>
+
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>TinyML Model Compression: From Pruning Ratios to Sparse Execution</h1>
+  <div class="meta">TinyML · 更新于 2026-06-29</div>
+  <h1 id="tinyml-model-compression-from-pruning-ratios-to-sparse-execution">TinyML Model Compression: From Pruning Ratios to Sparse Execution</h1>
+<p>After understanding what pruning does, the next practical question is no longer whether we can remove weights. The harder question is how much each layer should be pruned. A single global pruning ratio is usually too crude, because different layers tolerate pruning differently. Some layers can lose many weights with little accuracy drop, while others become fragile after a small amount of pruning.</p>
+<h1 id="software-view">Software view:</h1>
+<h2 id="determining-the-pruning-ratio">Determining the pruning ratio</h2>
+<p>The usual starting point is sensitivity analysis. Pick one layer $L_i$, prune it with different ratios such as $r \in \{0, 0.1, 0.2, \ldots, 0.9\}$, and then observe how much the model accuracy degrades at each ratio.</p>
+<p><img src="../../Pasted%20image%2020260629125302.png" alt="Pasted image 20260629125302" loading="lazy"></p>
+<p>This gives us a curve for a single layer. As the pruning rate increases, the accuracy loss usually increases as well, but the slope of that curve is the important part. A layer whose accuracy remains stable under aggressive pruning has more redundancy. A layer whose accuracy drops quickly should be pruned more conservatively.</p>
+<p>One layer is not enough, so the same process has to be repeated for all layers.</p>
+<p><img src="../../Pasted%20image%2020260629125346.png" alt="Pasted image 20260629125346" loading="lazy"></p>
+<p>Once we have sensitivity curves for all layers, we can choose a degradation threshold and select pruning ratios that stay within that tolerance. The point is to allocate the pruning budget according to each layer&#x27;s sensitivity, instead of forcing every layer to use the same sparsity.</p>
+<p><img src="../../Pasted%20image%2020260629125409.png" alt="Pasted image 20260629125409" loading="lazy"></p>
+<p>In this view, pruning ratio selection is a tradeoff between compression and accuracy. Sensitivity analysis makes that tradeoff visible before we commit to a pruning policy.</p>
+<h2 id="amc-learning-the-pruning-policy-automatically">AMC: learning the pruning policy automatically</h2>
+<p>Manual sensitivity analysis still leaves many choices to humans. We decide the candidate ratios, the threshold, and how to combine the layer-wise decisions. For large models, this quickly becomes labor-intensive and suboptimal.</p>
+<p>AMC, AutoML for Model Compression, formulates pruning as a reinforcement learning problem. Instead of manually specifying each layer&#x27;s pruning ratio, an agent observes the current layer and outputs an action, such as a channel sparsity ratio.</p>
+<p><img src="../../Pasted%20image%2020260629125457.png" alt="Pasted image 20260629125457" loading="lazy"></p>
+<p>The environment applies that pruning decision, evaluates the compressed model, and returns a reward related to the model error. The agent then learns a layer-wise compression policy. Compared with hand-designed compression, the appeal is that the search can discover policies that are difficult to write down as simple rules.</p>
+<p><img src="../../Pasted%20image%2020260629125535.png" alt="Pasted image 20260629125535" loading="lazy"></p>
+<p>For example, the learned policy for ResNet-50 can assign different pruning ratios to different convolution types. The slide suggests that $1 \times 1$ convolutions have less redundancy and should be pruned less, while $3 \times 3$ convolutions can often tolerate more pruning. The useful lesson is that the optimal sparsity pattern is shaped by the model structure, not just by a target compression number.</p>
+<h2 id="netadapt-pruning-under-real-latency-constraints">NetAdapt: pruning under real latency constraints</h2>
+<p>AMC focuses on automated policy search. NetAdapt adds another constraint that matters a lot for TinyML and mobile deployment: the compressed model should actually run faster on the target platform.</p>
+<p><img src="../../Pasted%20image%2020260629125645.png" alt="Pasted image 20260629125645" loading="lazy"></p>
+<p>NetAdapt works iteratively. In each iteration, it aims to reduce latency by a manually defined amount $\Delta R$. For each layer $L_k$, it tries pruning that layer enough to meet the latency reduction target, using a pre-built lookup table to estimate platform latency. Each candidate is then short-term fine-tuned and evaluated.</p>
+<p>The layer that gives the best accuracy after short-term fine-tuning is selected and pruned. This process repeats until the total latency constraint is satisfied. At the end, the model receives a longer fine-tuning stage to recover accuracy.</p>
+<p>The important point is that FLOPs and parameter count are only proxies. For deployment, we care about measured latency on a real platform. NetAdapt brings that platform feedback into the pruning loop.</p>
+<h1 id="hardware-view">Hardware view:</h1>
+<h2 id="sparse-and-compressed-model-acceleration">Sparse and compressed model acceleration</h2>
+<p>Pruning creates sparsity, but sparsity alone does not guarantee speedup. If the hardware still executes the model as dense computation, then zero weights do not automatically save time. To gain real speedup, the representation and the accelerator have to exploit sparsity directly.</p>
+<p><img src="../../Pasted%20image%2020260629125842.png" alt="Pasted image 20260629125842" loading="lazy"></p>
+<p>The slide highlights several sources of efficiency. Sparse weights can provide static sparsity, reducing computation and memory footprint. Sparse activations, often produced by ReLU, provide dynamic sparsity during inference. Weight sharing can further reduce memory by representing weights with fewer bits, such as 4-bit values.</p>
+<p>The challenge is irregularity. Once zeros are removed, the remaining nonzero values no longer sit in a simple dense layout.</p>
+<p><img src="../../Pasted%20image%2020260629125920.png" alt="Pasted image 20260629125920" loading="lazy"></p>
+<p>Accelerators such as EIE use sparse formats that store nonzero values together with indexing information, such as relative indices and column pointers. This lets the hardware keep the logical structure of the matrix while physically storing only the useful entries.</p>
+<p>We can have a closer look at how the computation works here. The input activation vector $\vec{a}$ is sparse: only $a_1$ and $a_3$ are nonzero. Therefore, instead of performing a complete matrix-vector multiplication, the accelerator only needs to process columns 1 and 3 of the weight matrix. Columns 0 and 2 can be skipped because multiplying them by zero would not contribute to the output.</p>
+<p>The rows of the weight matrix are distributed across four processing elements. For example, $PE0$ is responsible for rows 0 and 4, $PE1$ for rows 1 and 5, and so on. This interleaved assignment allows different output elements to be computed in parallel while ensuring that each output accumulator belongs to only one processing element.</p>
+<p>Physically, each PE stores only its nonzero weights in an interleaved compressed sparse column format. The <strong>Virtual Weight</strong> array contains the nonzero weights in column order. In the example for $PE0$, it stores</p>
+<p>$$ [w_{0,0},,w_{0,1},,w_{4,2},,w_{0,3},,w_{4,3}]. $$</p>
+<p>The <strong>Column Pointer</strong> array specifies where the weights belonging to each column begin and end in this flattened array. For example, the pointers 3 and 5 indicate that column 3 occupies positions $[3,5)$ and therefore contains the two weights $w_{0,3}$ and $w_{4,3}$. The <strong>Relative Index</strong> array records the displacement between the row positions of stored weights, allowing the accelerator to reconstruct their destination rows without storing a complete row index for every weight.</p>
+<p>When a nonzero activation $(a_j,j)$ is detected, it is broadcast to every PE. Each PE reads the interval</p>
+<p>$$ [p_j,p_{j+1}) $$</p>
+<p>from its local compressed weight array, multiplies the corresponding weights by $a_j$, and accumulates the products into the appropriate output elements. For this example, broadcasting $a_1$ causes the PEs to process the nonzero weights in column 1, while broadcasting $a_3$ causes them to process those in column 3. After all nonzero input activations have been processed, ReLU is applied to the accumulated vector, replacing negative outputs with zero.</p>
+<p>In this way, EIE avoids computations involving both pruned zero weights and zero input activations. However, this efficiency is not obtained merely from storing a sparse matrix: it also depends on specialized hardware that can decode the compressed indices, distribute activations, and perform the remaining irregular computations efficiently.</p>
+<p><img src="../../Pasted%20image%2020260629130154.png" alt="Pasted image 20260629130154" loading="lazy"></p>
+<p>Sparse access also creates memory-system challenges. Pointer SRAM banks, matrix access patterns, and activation loading all affect whether sparsity can be parallelized efficiently. In practice, sparse acceleration is as much a data-movement problem as a computation problem.</p>
+<h2 id="mn-sparsity">M:N sparsity</h2>
+<p>Fine-grained sparsity is flexible, but it is hard for hardware to accelerate because the pattern is irregular. Structured sparsity is easier to execute, but it may remove useful weights too rigidly. M:N sparsity sits between these two extremes. <img src="../../Pasted%20image%2020260629130603.png" alt="Pasted image 20260629130603" loading="lazy"></p>
+<p>In M:N sparsity, every group of $N$ weights keeps only $M$ nonzero values. This gives the hardware a predictable sparse pattern while still allowing more flexibility than pruning entire rows, columns, or channels.</p>
+<p>The compressed representation stores the nonzero data and a small amount of metadata that records where those nonzero values are located. The slide mentions a format where metadata can be represented with 2-bit indices.</p>
+<p><img src="../../Pasted%20image%2020260629130625.png" alt="Pasted image 20260629130625" loading="lazy"></p>
+<p>NVIDIA tensor core support for M:N sparsity follows this idea. Dense GEMM operates on full matrices, while sparse GEMM uses nonzero values plus indices to reduce computation while keeping the operation regular enough for hardware acceleration.</p>
+<h2 id="sparse-convolution-on-sparse-inputs">Sparse convolution on sparse inputs</h2>
+<p>So far, sparsity has mainly referred to weights. But inputs can also be sparse. ReLU creates activation sparsity, and point cloud data is sparse by nature because only some locations in space contain points. <img src="../../Pasted%20image%2020260629130736.png" alt="Pasted image 20260629130736" loading="lazy"></p>
+<p>Conventional convolution applies the kernel over a dense grid. Sparse convolution instead focuses on valid input-output pairs. If there is no meaningful input at a location, we would like to avoid spending computation there.</p>
+<p><img src="../../Pasted%20image%2020260629130803.png" alt="Pasted image 20260629130803" loading="lazy"></p>
+<p>Sparse convolution can be viewed as a sparse set of dense matrix multiplications, with rules defined by maps. A map records which input point, output point, and weight offset should participate in a computation. In the slide example, conventional convolution may require many matrix multiplications, while sparse convolution only executes the ones corresponding to valid mappings.</p>
+<h2 id="trading-computation-for-regularity">Trading computation for regularity</h2>
+<p>Sparse convolution reduces useless work, but it also makes computation less regular. Different spatial regions may have different numbers of nonzero points. If we execute the computation exactly according to the sparse structure, the hardware may suffer from poor parallelism and irregular memory access.</p>
+<p><img src="../../Pasted%20image%2020260629130834.png" alt="Pasted image 20260629130834" loading="lazy"> <img src="../../Pasted%20image%2020260629130856.png" alt="Pasted image 20260629130856" loading="lazy"> One solution is weight-stationary computation, where computations associated with different weights are organized separately. This improves reuse of weights and makes the dataflow more structured, but it requires maps that describe how input features, weights, and partial sums connect.</p>
+<p><img src="../../Pasted%20image%2020260629130914.png" alt="Pasted image 20260629130914" loading="lazy"></p>
+<p>Another solution is grouping. By grouping sparse computations into batched matrix multiplications, we trade a small amount of extra computation for more regular execution. The slide frames this as balancing computation overhead and computation regularity.</p>
+<p>This is a common systems tradeoff. Perfect sparsity avoids the most arithmetic, but it may be too irregular to run efficiently. A slightly more regular computation may do a little extra work while achieving better hardware utilization.</p>
+<p>TorchSparse makes it more efficient by reordering and splitting, this method&#x27;s core is to reduce the redundant computation caused by padding computation when we group different shapes of matrix multiplication. <img src="../../Pasted%20image%2020260629131057.png" alt="Pasted image 20260629131057" loading="lazy"></p>
+<h2 id="mapping-sparse-convolution">Mapping sparse convolution</h2>
+<p>Sparse convolution also needs a way to construct the mappings themselves. Given an input point cloud, an output point cloud, and kernel offsets, the system has to determine which input points contribute to which output points.</p>
+<p><img src="../../Pasted%20image%2020260629130949.png" alt="Pasted image 20260629130949" loading="lazy"></p>
+<p>The slide suggests that merge sort can be used to find these mappings. Intuitively, we can shift the input point set by a kernel offset and intersect it with the output point set. Each match gives an <code>(In, Out, Wgt)</code> mapping entry.</p>
+<p>This mapping unit turns irregular spatial relationships into a table that the sparse convolution engine can execute. Without this step, the accelerator would not know which nonzero computations are actually valid.</p>
+</article>
+
+  </main>
+</body>
+</html>
