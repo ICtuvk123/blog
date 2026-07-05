@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Architectures and Hyperparameters · Thoughts</title>
+  <meta name="description" content="负责记录想法的个人空间。">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="wave-scene" aria-hidden="true">
+    <svg class="waves" viewBox="0 0 1440 220" preserveAspectRatio="none">
+      <path class="wave-path wave-one" d="M0,96 C160,28 300,28 480,96 C650,160 820,160 1000,96 C1160,34 1300,34 1440,96 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-two" d="M0,128 C180,78 330,78 520,128 C690,176 860,176 1040,128 C1200,84 1320,84 1440,128 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-three" d="M0,158 C170,118 340,118 520,158 C700,198 880,198 1060,158 C1220,122 1340,122 1440,158 L1440,220 L0,220 Z"></path>
+    </svg>
+  </div>
+  <header class="site-header">
+    <a class="brand" href="../../">Thoughts</a>
+    
+    <nav class="nav">
+      <a href="../../">首页</a>
+      <a href="../../archive.html">归档</a>
+      <a href="../../game.html">游戏</a>
+      <a href="../../about.html">关于</a>
+    </nav>
+
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Architectures and Hyperparameters</h1>
+  <div class="meta">CS336 · 更新于 2026-07-04</div>
+  <h1 id="architectures-and-hyperparameters">Architectures and Hyperparameters</h1>
+<p>This lecture is about the architectural choices that have become standard in modern language models. Many of these choices look small in isolation: where to put LayerNorm, whether to keep bias terms, how to parameterize the feedforward block, how to represent position, and how to reduce the cost of attention. But together they define the practical transformer recipe used by most recent LMs.</p>
+<h2 id="pre-norm-as-the-modern-default">Pre-norm as the modern default</h2>
+<p>The first architectural question is where normalization should sit inside a Transformer block. The original Transformer used post-LayerNorm: apply attention or the feedforward network, add the residual connection, then normalize. Most modern language models use pre-norm: normalize the input before the sublayer, then add the residual output back to the main stream.</p>
+<p><img src="../../Graph/Pasted%20image%2020260701230501.png" alt="Pasted image 20260701230501" loading="lazy"></p>
+<p>The reason this matters is optimization. In a deep residual network, the residual stream is the main path through which information and gradients move. Pre-norm keeps that path more direct, because LayerNorm does not sit after every residual addition. Post-norm was used in older models such as BERT, but pre-norm has become the default for large LMs.</p>
+<p>The empirical story also supports this shift. The pre-vs-post-norm comparison shows that pre-norm variants train more stably and can often avoid some of the warm-up sensitivity seen in post-norm models.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704093510.png" alt="Pasted image 20260704093510" loading="lazy"></p>
+<p>One explanation is gradient behavior. Post-norm can suffer from gradient spikes or unstable gradient scaling, especially early in training. Pre-norm makes very deep transformers easier to optimize and supports larger learning rates in large networks.</p>
+<p><img src="../../Graph/Pasted%20image%2020260701231732.png" alt="Pasted image 20260701231732" loading="lazy"></p>
+<p>The historical motivation was sometimes framed as removing warm-up. Today the more important takeaway is broader: pre-norm is a stability choice for deep models.</p>
+<h2 id="layernorm-and-rmsnorm">LayerNorm and RMSNorm</h2>
+<p>The original Transformer used LayerNorm. LayerNorm normalizes both the mean and variance across the model dimension:</p>
+<p>$$ \mathrm{LayerNorm}(x) = \frac{x - \mathbb{E}[x]}{\sqrt{\mathrm{Var}(x) + \epsilon}} \cdot \gamma + \beta $$</p>
+<p>Many modern models instead use RMSNorm. RMSNorm removes the mean subtraction and usually omits the bias term:</p>
+<p>$$ \mathrm{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\|x\|_2^2 + \epsilon}} \cdot \gamma $$</p>
+<p><img src="../../Graph/Pasted%20image%2020260701232021.png" alt="Pasted image 20260701232021" loading="lazy"></p>
+<p>The simple explanation is that RMSNorm is faster and tends to work just as well. It avoids computing the mean and stores fewer parameters because there is no bias term. Models such as the LLaMA family, PaLM, Chinchilla, and T5 use RMSNorm-style normalization, while earlier GPT-style models and OPT used LayerNorm.</p>
+<p>At first glance, the runtime argument may seem too small to matter, because matrix multiplications dominate FLOPs.</p>
+<p><img src="../../Graph/Pasted%20image%2020260701232140.png" alt="Pasted image 20260701232140" loading="lazy"></p>
+<p>But FLOPs are not runtime. Normalization can be a small fraction of FLOPs while still taking a meaningful fraction of wall-clock time, because it involves data movement and memory access patterns that are less efficient than large matrix multiplications.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704093925.png" alt="Pasted image 20260704093925" loading="lazy"></p>
+<p>This is one of the recurring systems lessons in architecture design: an operation can be cheap in arithmetic and still matter in runtime.</p>
+<h2 id="dropping-bias-terms">Dropping bias terms</h2>
+<p>Many modern transformers also drop bias terms. In the original feedforward network, the block looked like:</p>
+<p>$$ \mathrm{FFN}(x) = \max(0, xW_1 + b_1)W_2 + b_2 $$</p>
+<p>Modern implementations often remove these biases:</p>
+<p>$$ \mathrm{FFN}(x) = \phi(xW_1)W_2 $$</p>
+<p><img src="../../Graph/Pasted%20image%2020260701232430.png" alt="Pasted image 20260701232430" loading="lazy"></p>
+<p>The reasons are similar to RMSNorm: less memory movement, fewer parameters, and often more stable optimization. The savings from one bias vector are small, but across many layers and very large models, these simplifications become part of a cleaner and more efficient design.</p>
+<h2 id="gated-feedforward-layers">Gated feedforward layers</h2>
+<p>The feedforward block has also changed. Instead of a plain two-layer MLP with ReLU or GELU, many modern models use gated variants such as GeGLU and SwiGLU.</p>
+<p><img src="../../Graph/Pasted%20image%2020260701234540.png" alt="Pasted image 20260701234540" loading="lazy"></p>
+<p>The key idea is to compute two projections from the input. One projection produces values, and the other produces a gate. The output is formed by multiplying them before the final projection:</p>
+<p>$$ \mathrm{GeGLU}(x) = (\mathrm{GELU}(xW) \odot xV)W_2 $$</p>
+<p>SwiGLU replaces GELU with Swish:</p>
+<p>$$ \mathrm{SwiGLU}(x) = (\mathrm{Swish}(xW) \odot xV)W_2 $$</p>
+<p>Gated feedforward layers are used in many recent models, including LLaMA-style models, PaLM, Mistral, and others. Because the gated block has extra projections, the hidden dimension is usually reduced compared with the classic factor-of-4 feedforward size. A common rule is to use about $2/3$ of the original feedforward dimension.</p>
+<h2 id="parallel-layers">Parallel layers</h2>
+<p>Most Transformer blocks serialize attention and the MLP: run attention, add it to the residual stream, then run the MLP. Some models, including GPT-J, PaLM, and GPT-NeoX, use a parallel formulation.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704095249.png" alt="Pasted image 20260704095249" loading="lazy"></p>
+<p>In the standard serialized block, attention and MLP are computed one after another. In the parallel version, both receive the same normalized input:</p>
+<p>$$ y = x + \mathrm{Attention}(\mathrm{LayerNorm}(x)) + \mathrm{MLP}(\mathrm{LayerNorm}(x)) $$</p>
+<p>If implemented carefully, the shared normalization and input matrix multiplications can be fused, which can make training faster. GPT-J reported roughly a 15% training speedup at large scale. There may be small quality tradeoffs at smaller scales, but large models appear to tolerate the parallel structure better.</p>
+<p>The note &quot;Lost half of depth!&quot; is a useful warning: when attention and MLP are parallelized, the effective sequential depth changes. The model may run faster, but the meaning of depth is not identical to the serialized Transformer.</p>
+<h2 id="rope-rotary-position-embeddings">RoPE: rotary position embeddings</h2>
+<p>A language model needs position information, but we would like attention to depend on relative position when possible. If token $i$ attends to token $j$, the relevant distance is often $i - j$, not the absolute locations separately.</p>
+<p>RoPE, rotary position embeddings, is designed around this idea.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704100329.png" alt="Pasted image 20260704100329" loading="lazy"></p>
+<p>Absolute positional embeddings inject position directly into token representations, which makes the representation depend on the absolute index. Sinusoidal embeddings have useful structure, but when combined with token embeddings additively, they introduce cross terms that are not purely relative. Relative position embeddings solve part of the problem, but they are not naturally expressed as an inner product between rotated query and key vectors.</p>
+<p>RoPE uses a different trick: rotate the query and key vectors according to their positions.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704100444.png" alt="Pasted image 20260704100444" loading="lazy"></p>
+<p>Inner products are invariant to applying the same rotation to both vectors. So if position is encoded as a rotation, then the inner product between a query at position $i$ and a key at position $j$ can depend on the relative rotation between them, which corresponds to $i-j$.</p>
+<p>The actual implementation pairs coordinates and applies rotations with different frequencies.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704100454.png" alt="Pasted image 20260704100454" loading="lazy"></p>
+<p>The RoPE matrix is block diagonal, with each pair of dimensions rotated by sine and cosine terms:</p>
+<p>$$ \begin{pmatrix} \cos(m\theta_1) &amp; -\sin(m\theta_1) \\ \sin(m\theta_1) &amp; \cos(m\theta_1) \end{pmatrix} $$</p>
+<p>applied across multiple coordinate pairs.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704100713.png" alt="Pasted image 20260704100713" loading="lazy"></p>
+<p>The important difference from additive sinusoidal embeddings is that RoPE changes the geometry of the query and key vectors through rotation. It does not simply add a position vector to the token representation.</p>
+<h2 id="weight-decay-in-llms">Weight decay in LLMs</h2>
+<p>Weight decay is often introduced as a regularizer to control overfitting. In large language models, the story is more subtle.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704103347.png" alt="Pasted image 20260704103347" loading="lazy"></p>
+<p>The slide points to observations from Andriushchenko et al. 2023: weight decay interacts strongly with learning rate schedules, especially cosine decay. Its effect is less about classical overfitting control and more about optimization dynamics.</p>
+<p>This is part of why architecture and hyperparameter lectures can feel strange. Some choices look like regularization, but their practical effect is often mediated through training stability, learning-rate interaction, and large-scale optimization behavior.</p>
+<h2 id="hyperparameter-summary">Hyperparameter summary</h2>
+<p>Several broad rules of thumb appear repeatedly in modern model design.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704103549.png" alt="Pasted image 20260704103549" loading="lazy"></p>
+<p>The feedforward dimension often follows a factor-of-4 rule for standard FFNs, and about $8/3$ for GLU-style feedforward blocks. The head dimension and number of heads usually satisfy:</p>
+<p>$$ d_{\text{model}} = n_{\text{heads}} \cdot d_{\text{head}} $$</p>
+<p>Aspect ratio choices have a wide range of good values, often shaped by systems concerns. Regularization is still present, but its effect is frequently tied to optimization dynamics rather than only generalization in the small-data sense.</p>
+<h2 id="softmax-stability-z-loss">Softmax stability: z-loss</h2>
+<p>The output softmax can become numerically unstable if the normalizer grows too large. PaLM used an auxiliary z-loss to encourage the log normalizer to stay close to zero.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704105804.png" alt="Pasted image 20260704105804" loading="lazy"></p>
+<p>If $Z(x)$ is the softmax normalizer, the auxiliary term has the form:</p>
+<p>$$ L_z = \alpha \log^2 Z(x) $$</p>
+<p>This does not replace the language modeling loss. It adds a small stability pressure on the logits. Similar ideas appear in Baichuan 2, DCLM, OLMo 2, OLMo 3, and related models.</p>
+<h2 id="attention-softmax-stability-qk-norm">Attention softmax stability: QK norm</h2>
+<p>The attention softmax has its own stability issues. Attention logits come from query-key dot products, and these logits can become poorly scaled.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704110818.png" alt="Pasted image 20260704110818" loading="lazy"></p>
+<p>QK norm addresses this by applying LayerNorm or RMSNorm to queries and keys before the softmax. This stabilizes the magnitude of attention scores. The trick appears in models such as DCLM, OLMo 2, Gemma 2, Qwen3, OLMo 3, and later Gemma models, and it also has roots in vision and multimodal models.</p>
+<p>This is a place where training can develop degeneracies, so controlling the scale of query-key interactions is often useful.</p>
+<h2 id="logit-soft-capping">Logit soft-capping</h2>
+<p>Another stability technique is logit soft-capping. The idea is to cap logits smoothly using a tanh transformation:</p>
+<p>$$ \mathrm{logits} \leftarrow c \cdot \tanh\left(\frac{\mathrm{logits}}{c}\right) $$</p>
+<p><img src="../../Graph/Pasted%20image%2020260704111118.png" alt="Pasted image 20260704111118" loading="lazy"></p>
+<p>This keeps logits between $-c$ and $c$. The slide mentions using different caps for self-attention layers and the final layer. This can prevent logits from blowing up, though the technique may introduce performance tradeoffs and is more associated with some Google model families than with all modern LMs.</p>
+<h2 id="gqa-and-mqa-reducing-attention-head-cost">GQA and MQA: reducing attention head cost</h2>
+<p>During training on full sequences, attention has high arithmetic intensity. There are large matrix multiplications for $QK^\top$, softmax, and the value mixing step, so GPUs can be kept busy.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704111344.png" alt="Pasted image 20260704111344" loading="lazy"></p>
+<p>The incremental generation case is different. When generating text one token at a time, the model cannot parallelize across future tokens. It has to reuse the KV cache and update attention step by step.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704112737.png" alt="Pasted image 20260704112737" loading="lazy"></p>
+<p>Now the cost shifts. The model repeatedly reads keys and values from the KV cache. Arithmetic intensity becomes worse because memory movement grows relative to computation.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704112937.png" alt="Pasted image 20260704112937" loading="lazy"></p>
+<p>Multi-query attention (MQA) reduces this cost by sharing keys and values across heads. Instead of each head having its own keys and values, the model has multiple query heads but fewer key/value heads.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704113042.png" alt="Pasted image 20260704113042" loading="lazy"></p>
+<p>This significantly reduces KV cache memory traffic. The tradeoff is expressiveness: sharing keys and values makes attention cheaper, but it constrains what different heads can represent.</p>
+<p>Grouped-query attention (GQA) is a middle ground.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704113110.png" alt="Pasted image 20260704113110" loading="lazy"></p>
+<p>Instead of using one shared KV set for all query heads, GQA groups query heads and gives each group its own keys and values. This creates a knob between standard multi-head attention and MQA. More KV groups preserve more expressiveness; fewer KV groups improve inference efficiency.</p>
+<h2 id="sparse-and-sliding-window-attention">Sparse and sliding-window attention</h2>
+<p>Full attention over the entire context is quadratic in sequence length. For long contexts, this becomes expensive.</p>
+<p><img src="../../Graph/Pasted%20image%2020260704113530.png" alt="Pasted image 20260704113530" loading="lazy"></p>
+<p>Sparse or sliding-window attention reduces this cost by limiting which tokens each position can attend to. This trades expressiveness for runtime. Some models alternate between full attention and structured sparse patterns, while others use local windows or special global tokens.</p>
+<p>The common theme is the same as earlier architecture choices: large language model design is not only about mathematical expressiveness. It is also about stability, memory movement, and how well the computation maps to hardware.</p>
+<h2 id="closing-remarks">Closing remarks</h2>
+<p>This lecture connects many small architecture decisions into a single practical picture. Pre-norm improves optimization stability. RMSNorm and bias removal reduce unnecessary memory movement. Gated feedforward blocks improve capacity allocation. RoPE gives attention a relative-position structure. Stability tricks such as z-loss, QK norm, and logit soft-capping control the scale of softmax computations. GQA, MQA, and sparse attention reduce inference-time memory and attention cost.</p>
+<p>None of these choices alone defines a modern language model. Together, they form the current engineering recipe for making deep transformers train stably and run efficiently.</p>
+</article>
+
+  </main>
+</body>
+</html>

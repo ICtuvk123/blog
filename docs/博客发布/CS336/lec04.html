@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Efficient Sequence Models and Mixture of Experts · Thoughts</title>
+  <meta name="description" content="负责记录想法的个人空间。">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="wave-scene" aria-hidden="true">
+    <svg class="waves" viewBox="0 0 1440 220" preserveAspectRatio="none">
+      <path class="wave-path wave-one" d="M0,96 C160,28 300,28 480,96 C650,160 820,160 1000,96 C1160,34 1300,34 1440,96 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-two" d="M0,128 C180,78 330,78 520,128 C690,176 860,176 1040,128 C1200,84 1320,84 1440,128 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-three" d="M0,158 C170,118 340,118 520,158 C700,198 880,198 1060,158 C1220,122 1340,122 1440,158 L1440,220 L0,220 Z"></path>
+    </svg>
+  </div>
+  <header class="site-header">
+    <a class="brand" href="../../">Thoughts</a>
+    
+    <nav class="nav">
+      <a href="../../">首页</a>
+      <a href="../../archive.html">归档</a>
+      <a href="../../game.html">游戏</a>
+      <a href="../../about.html">关于</a>
+    </nav>
+
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Efficient Sequence Models and Mixture of Experts</h1>
+  <div class="meta">CS336 · 更新于 2026-07-05</div>
+  <h1 id="efficient-sequence-models-and-mixture-of-experts">Efficient Sequence Models and Mixture of Experts</h1>
+<p>This lecture is about what happens after the &quot;basic&quot; Transformer toolkit starts to feel insufficient. FlashAttention, xFormers, sparse Transformer kernels, and local/global attention patterns already give large practical speedups, but they still mostly keep the same attention structure. The deeper question is whether we can change the computation itself and get a more radical improvement.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705090611.png" alt="Pasted image 20260705090611" loading="lazy"></p>
+<p>The lecture follows two main directions. The first direction asks whether attention has to be quadratic in the sequence length. This leads to linear attention, recurrent views of attention, Mamba-style models, and sparse adaptation. The second direction asks whether every token needs to use the same feedforward network. That leads to Mixture of Experts, where the model can grow in parameter count without paying the full dense compute cost on every token.</p>
+<h2 id="linear-attention">Linear Attention</h2>
+<p>The expensive part of standard attention is the all-pairs interaction between queries and keys. If the sequence length is $n$, the multiplication $QK^\top$ creates an $n \times n$ attention matrix, so the cost grows quadratically with sequence length.</p>
+<p>If we temporarily ignore the softmax and treat attention as a purely linear operation, the expression can be rearranged:</p>
+<p>$$ \mathrm{Attn}(Q, K, V) = (QK^\top)V $$</p>
+<p>By associativity, this can also be written as:</p>
+<p>$$ (QK^\top)V = Q(K^\top V) $$</p>
+<p><img src="../../Graph/Pasted%20image%2020260705090652.png" alt="Pasted image 20260705090652" loading="lazy"></p>
+<p>At first this looks like a trivial algebraic trick, but the computational consequence is important. Instead of materializing the full $n \times n$ attention matrix, we can first compute $K^\top V$, then multiply by $Q$. This changes the cost from something like $n^2 d k + n^2 d v$ to a term that scales linearly in $n$ for fixed hidden dimensions.</p>
+<p>The reason this matters is that it changes the bottleneck. Standard attention spends work on every token pair. Linear attention tries to summarize the past into a state that can be reused.</p>
+<h2 id="the-recurrent-view">The Recurrent View</h2>
+<p>The same rearrangement also gives a recurrent interpretation. In purely linear attention, we can define a running state:</p>
+<p>$$ S_t = S_{t-1} + k_t v_t^\top $$</p>
+<p>Then the output at position $t$ is:</p>
+<p>$$ y_t = q_t S_t $$</p>
+<p><img src="../../Graph/Pasted%20image%2020260705091236.png" alt="Pasted image 20260705091236" loading="lazy"></p>
+<p>This is the important duality. During training, we still want parallel computation because GPUs are good at large batched operations. During inference, however, generation is sequential. If the model can maintain a state $S_t$, then each new token only updates that state and reads from it. So the same mechanism can have a parallel form for training and a recurrent form for inference.</p>
+<h2 id="from-linear-attention-to-mamba-2">From Linear Attention to Mamba-2</h2>
+<p>Linear attention by itself is usually too simple. The next step is to make the state update more expressive by adding per-position weights and gates. In the linear attention view, the state update is:</p>
+<p>$$ S_t = S_{t-1} + k_t v_t^\top,\qquad y_t = q_t S_t $$</p>
+<p>Mamba-2 can be viewed as a more general version of this pattern:</p>
+<p>$$ S_t = A_t S_{t-1} + B_t x_t,\qquad y_t = C_t S_t + D_t x_t $$</p>
+<p><img src="../../Graph/Pasted%20image%2020260705092328.png" alt="Pasted image 20260705092328" loading="lazy"></p>
+<p>The details require the Mamba-2 paper, but the mechanical idea is easy to recognize from the previous lecture themes: gating makes a simple linear mechanism more selective. Instead of always adding the same kind of key-value update, the model can decide how much information should enter the state and how the state should affect the output. The useful property is that this still keeps a dual view: there is a sequential state-update interpretation and a parallel computation form.</p>
+<h2 id="gated-delta-nets">Gated Delta Nets</h2>
+<p>Gated Delta Net pushes the same direction further. The model gates the input into the state, and it can also selectively erase information from the state. A simplified form is:</p>
+<p>$$ S_t = \gamma_t (I - \beta_t k_t k_t^\top) S_{t-1} + \beta_t k_t v_t^\top $$</p>
+<p>and the output is still read as:</p>
+<p>$$ y_t = q_t S_t $$</p>
+<p><img src="../../Graph/Pasted%20image%2020260705092653.png" alt="Pasted image 20260705092653" loading="lazy"></p>
+<p>The term $\beta_t$ can act like a no-input gate when it is close to zero. The erasing term removes information in the direction of the current key, so the state is no longer just accumulating memories forever. This connects to older fast-weight programming and test-time training ideas, because the model is effectively maintaining a small, changing memory matrix during sequence processing.</p>
+<h2 id="sparse-adaptation">Sparse Adaptation</h2>
+<p>Another way to avoid full quadratic attention is to keep the attention form but stop attending to every previous token. Dynamic Sparse Attention uses a lightweight indexer to decide which previous tokens are worth attending to. The indexer scores previous tokens for the current query, selects the top candidates, and then runs attention only over that selected set.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705094126.png" alt="Pasted image 20260705094126" loading="lazy"></p>
+<p>This gives a different tradeoff from linear attention. Linear attention changes the algebra of attention and compresses the past into a state. Sparse adaptation keeps something closer to ordinary attention, but restricts the set of token pairs. If the indexer is cheap enough, this can give large savings while still allowing the model to retrieve specific past tokens.</p>
+<h2 id="what-moe-changes">What MoE Changes</h2>
+<p>The second half of the lecture shifts from attention to the feedforward block. In a dense Transformer, every token goes through the same feedforward network. A Mixture of Experts replaces one large feedforward network with many feedforward networks and a routing layer that selects which experts each token should use.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705103222.png" alt="Pasted image 20260705103222" loading="lazy"></p>
+<p>The attractive part is that the model can increase the number of experts, and therefore the total parameter count, without increasing the per-token FLOPs in the same way. A token only activates a small number of experts, so the model becomes sparse in activation even though it may be very large in total parameters.</p>
+<h2 id="why-moe-became-popular">Why MoE Became Popular</h2>
+<p>MoE is also a systems idea. Experts can be sharded across devices, and routing sends tokens to the devices that hold the selected experts. This creates a form of expert parallelism on top of data parallelism and model parallelism.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705104248.png" alt="Pasted image 20260705104248" loading="lazy"></p>
+<p>The cost is communication. Tokens need to be dispatched to experts and then combined after the expert computation. So MoE should be understood as a compute-communication tradeoff rather than simply &quot;more parameters for free.&quot; It works well when the compute saved by sparse activation and the parallelism gained from expert placement outweigh the all-to-all communication cost.</p>
+<h2 id="routing">Routing</h2>
+<p>Most MoE routing methods reduce to a simple question: for each token, which expert or experts should process it?</p>
+<p><img src="../../Graph/Pasted%20image%2020260705105318.png" alt="Pasted image 20260705105318" loading="lazy"></p>
+<p>The common answer is top-$k$ routing. The router assigns a score or probability to each expert, then sends the token to the top $k$ experts. Switch Transformer uses $k=1$, while models such as GShard, Mixtral, Qwen, DBRX, and DeepSeek use larger values.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705105554.png" alt="Pasted image 20260705105554" loading="lazy"></p>
+<p>Hash routing is a simpler baseline: a token is assigned to an expert by a hash function instead of a learned router. There are also routing methods based on reinforcement learning or solving an assignment problem, but these are less common in modern large-scale MoEs.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705105717.png" alt="Pasted image 20260705105717" loading="lazy"></p>
+<p>The reason top-$k$ remains common is that it is simple, differentiable through the router probabilities, and works well enough in practice. More complex routing methods can be conceptually appealing, but they introduce extra optimization and systems complexity.</p>
+<h2 id="deepseek-style-expert-design">DeepSeek-Style Expert Design</h2>
+<p>Recent Chinese LMs, especially DeepSeek-style MoEs, modify the expert structure itself. Instead of using only a small number of large routed experts, they use many smaller experts and include shared experts that are always active.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705110119.png" alt="Pasted image 20260705110119" loading="lazy"></p>
+<p>This matters because routing alone does not solve everything. If experts are too coarse, the model may not have enough fine-grained specialization. If all computation is routed, the model may lose a stable shared path. Shared experts give every token a common feedforward component, while routed experts provide specialization.</p>
+<p>The original note also mentions &quot;deepseek v3.2&quot;, which seems to mark this section as moving from generic MoE design into DeepSeek-style design choices.</p>
+<h2 id="why-routing-is-hard">Why Routing Is Hard</h2>
+<p>In principle, reinforcement learning feels like the natural solution to routing: choosing an expert is a discrete decision, so one might try to learn the routing policy directly. In practice, REINFORCE-style routing can work, but the gain is not usually clear enough to justify the variance and complexity.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705111923.png" alt="Pasted image 20260705111923" loading="lazy"></p>
+<p>Some early MoE work instead used stochastic routing. Shazeer et al. added noise to the router logits:</p>
+<p>$$ H(x)_i = (xW_g)_i + \mathrm{Normal}(0,1)\cdot \mathrm{Softplus}((xW_{\text{noise}})_i) $$</p>
+<p>Then the model keeps only the top-$k$ noisy scores:</p>
+<p>$$ \mathrm{KeepTopK}(v)_i = \begin{cases} v_i, &amp; \text{if } v_i \text{ is in the top } k,\\ -\infty, &amp; \text{otherwise.} \end{cases} $$</p>
+<p><img src="../../Graph/Pasted%20image%2020260705112123.png" alt="Pasted image 20260705112123" loading="lazy"></p>
+<p>Noise encourages exploration and can make experts more robust, while the softmax router still learns a ranking over experts. But routing also has a systems constraint: experts need to be used evenly enough that no device becomes a bottleneck.</p>
+<h2 id="balancing-experts">Balancing Experts</h2>
+<p>This is why MoE training often adds an auxiliary load-balancing loss. In Switch Transformer, each layer uses a loss based on two quantities. Let $f_i$ be the fraction of tokens actually dispatched to expert $i$, and let $P_i$ be the average router probability assigned to expert $i$. The auxiliary loss is:</p>
+<p>$$ \mathrm{loss}_{\mathrm{aux}} = \alpha N \sum_{i=1}^{N} f_i P_i $$</p>
+<p><img src="../../Graph/Pasted%20image%2020260705112455.png" alt="Pasted image 20260705112455" loading="lazy"></p>
+<p>The intuition is that if one expert is already receiving many tokens, the loss pushes against assigning it even more probability. This is a heuristic, but it reflects a real constraint: an MoE model can be theoretically sparse and still run poorly if routing collapses onto a small number of experts.</p>
+<h2 id="training-moes-as-systems-problems">Training MoEs as Systems Problems</h2>
+<p>MoEs parallelize nicely because different experts can live on different devices. This creates expert parallelism, and it can be combined with data parallelism and model parallelism.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705113033.png" alt="Pasted image 20260705113033" loading="lazy"></p>
+<p>The implementation details matter. Expert computation can be represented as many independent matrix multiplications, as a block-diagonal matrix multiplication, or as a block-sparse matrix multiplication. Modern libraries such as MegaBlocks use smarter sparse matrix multiplication to handle imbalanced routing and variable expert sizes more efficiently.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705113346.png" alt="Pasted image 20260705113346" loading="lazy"></p>
+<p>So MoE is both an architecture choice and a commitment to a particular distributed systems design: dispatch, all-to-all communication, expert computation, and combine.</p>
+<h2 id="reducing-moe-communication">Reducing MoE Communication</h2>
+<p>One recent direction is to reduce the size of the activations that need to move between devices. LatentMoE, mentioned here through Nemotron-style design, down-projects activations before dispatch and up-projects them after expert computation.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705113435.png" alt="Pasted image 20260705113435" loading="lazy"></p>
+<p>The motivation is straightforward. In a standard MoE, communication can become expensive because token activations are sent across devices. If the activation can be compressed into a lower-dimensional latent representation before the all-to-all dispatch, the model may get better accuracy per byte of communication.</p>
+<h2 id="upcycling-dense-models-into-moes">Upcycling Dense Models into MoEs</h2>
+<p>Another practical question is whether we need to train an MoE from scratch. Upcycling tries to initialize an MoE from a pretrained dense model by copying the dense feedforward weights into multiple experts and adding a router.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705114218.png" alt="Pasted image 20260705114218" loading="lazy"></p>
+<p>This is appealing because dense pretrained models are already expensive assets. If the dense model can be converted into an MoE and then further trained, we may get part of the benefit of a sparse expert model without paying the full cost of training from the beginning. The slide frames this as a question rather than a settled answer: can we use a pretrained LM to initialize an MoE?</p>
+<h2 id="deepseek-v3-mla-and-mtp">DeepSeek V3: MLA and MTP</h2>
+<p>The final slides point to extra ingredients used in DeepSeek-style models. The first is MLA, or Multi-head Latent Attention. The basic idea is to express queries, keys, and values as functions of a lower-dimensional latent activation.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705114322.png" alt="Pasted image 20260705114322" loading="lazy"></p>
+<p>This connects back to the same systems pressure seen throughout the lecture: attention is expensive because arithmetic, memory, and cached activations all matter during inference. If $Q$, $K$, and $V$ can be derived from a compact latent state, then the model can reduce what needs to be stored or moved.</p>
+<p>The second ingredient is MTP, or multi-token prediction. Instead of training only the next-token prediction head, the model adds lightweight modules that try to predict multiple future tokens.</p>
+<p><img src="../../Graph/Pasted%20image%2020260705114507.png" alt="Pasted image 20260705114507" loading="lazy"></p>
+<p>The slide notes that DeepSeek V3 only uses MTP one token ahead, and also references EAGLE-style draft models. The shared theme is that generation speed and training signal can be improved by asking the model to reason slightly beyond the immediate next token, though the exact benefit depends on the implementation and ablations.</p>
+<h2 id="closing-view">Closing View</h2>
+<p>The lecture starts from a simple bottleneck: full attention over long contexts is expensive. Linear attention, Mamba-like state models, sparse attention, and MoE all respond to that pressure in different ways. Some methods change how sequence information is stored, some change which token pairs are computed, and some change how feedforward capacity is activated.</p>
+<p>The common pattern is that architecture and systems cannot be separated. A method is only attractive if its math, memory behavior, communication pattern, and hardware mapping work together.</p>
+</article>
+
+  </main>
+</body>
+</html>

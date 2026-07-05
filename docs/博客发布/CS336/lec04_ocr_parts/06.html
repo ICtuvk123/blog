@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>06 · Thoughts</title>
+  <meta name="description" content="负责记录想法的个人空间。">
+  <link rel="stylesheet" href="../../../assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="wave-scene" aria-hidden="true">
+    <svg class="waves" viewBox="0 0 1440 220" preserveAspectRatio="none">
+      <path class="wave-path wave-one" d="M0,96 C160,28 300,28 480,96 C650,160 820,160 1000,96 C1160,34 1300,34 1440,96 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-two" d="M0,128 C180,78 330,78 520,128 C690,176 860,176 1040,128 C1200,84 1320,84 1440,128 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-three" d="M0,158 C170,118 340,118 520,158 C700,198 880,198 1060,158 C1220,122 1340,122 1440,158 L1440,220 L0,220 Z"></path>
+    </svg>
+  </div>
+  <header class="site-header">
+    <a class="brand" href="../../../">Thoughts</a>
+    
+    <nav class="nav">
+      <a href="../../../">首页</a>
+      <a href="../../../archive.html">归档</a>
+      <a href="../../../game.html">游戏</a>
+      <a href="../../../about.html">关于</a>
+    </nav>
+
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>06</h1>
+  <div class="meta">CS336 · 更新于 2026-07-05</div>
+  <p>Alternative to hybrids: sparse adaptation Instead of attending to every token, do sparse attention (DSA) Prototype of DSA. The prototype of DSA primarily consists of two components: a lightning indexer and a fine-grained token selection mechanism. The lightning indexer computes the index score Its between the query token ht Rd and a preceding token hs e Rd , determining which tokens to be selected by the query token: (1) where HI denotes the number Of indexer heads; qtlJ Rdi and u.&#x27;lt e R are derived from the query token ht; and ksl e Rdi is derived from the preceding token hs. We choose ReLU as the activation function for throughput consideration. Given that the lightning indexer has a small number Of heads and can be implemented in FP8, its computational efficiency is remarkable. Given the index scores {IJ for each query token ht, our fine-grained token selection mechanism retrieves only the key-value entries {cs} corresponding to the top-k index scores. Then, the attention output ut is computed by applying the attention mechanism between the query token ht and the sparsely selected key-value entries {cs): ut = Attn(ht, {cs E Top-k(lt,:)}). (2) The indexer can be very lightweight, giving significant gains attention Where some number of these top positions get included into my attention computation</p>
+</article>
+
+  </main>
+</body>
+</html>

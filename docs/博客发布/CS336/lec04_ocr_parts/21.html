@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Target Tokens · Thoughts</title>
+  <meta name="description" content="负责记录想法的个人空间。">
+  <link rel="stylesheet" href="../../../assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="wave-scene" aria-hidden="true">
+    <svg class="waves" viewBox="0 0 1440 220" preserveAspectRatio="none">
+      <path class="wave-path wave-one" d="M0,96 C160,28 300,28 480,96 C650,160 820,160 1000,96 C1160,34 1300,34 1440,96 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-two" d="M0,128 C180,78 330,78 520,128 C690,176 860,176 1040,128 C1200,84 1320,84 1440,128 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-three" d="M0,158 C170,118 340,118 520,158 C700,198 880,198 1060,158 C1220,122 1340,122 1440,158 L1440,220 L0,220 Z"></path>
+    </svg>
+  </div>
+  <header class="site-header">
+    <a class="brand" href="../../../">Thoughts</a>
+    
+    <nav class="nav">
+      <a href="../../../">首页</a>
+      <a href="../../../archive.html">归档</a>
+      <a href="../../../game.html">游戏</a>
+      <a href="../../../about.html">关于</a>
+    </nav>
+
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Target Tokens</h1>
+  <div class="meta">CS336 · 更新于 2026-07-05</div>
+  <p>What else do you need to make DeepSeek MOE v3? MTP: Have small, lightweight models that predict multiple steps ahead</p>
+<h3 id="target-tokens">Target Tokens</h3>
+<h3 id="cross-entropy-loss">Cross-Entropy Loss</h3>
+<h3 id="main-model">Main Model</h3>
+<h3 id="output-head">Output Head</h3>
+<p>Transform er Block x L</p>
+<h3 id="embedding-layer">Embedding Layer</h3>
+<p>Input Tokens t, t2 ta t,</p>
+<h3 id="cross-ent-ropy-loss">Cross-Ent ropy Loss</h3>
+<h3 id="mtp-module-1">MTP Module 1</h3>
+<p>(Next-y</p>
+<h3 id="output-head">Output Head</h3>
+<h3 id="transformer-block">Transformer Block</h3>
+<h3 id="linear-projection">Linear Projection</h3>
+<h3 id="rmsnorm-rmsnorm">RMSNorm RMSNorm</h3>
+<h3 id="embedding-layer">Embedding Layer</h3>
+<p>t2 tats</p>
+<h3 id="cross-entropy-loss">Cross-Entropy Loss</h3>
+<h3 id="mtp-module-2">MTP Module 2</h3>
+<p>(NextS</p>
+<h3 id="output-head">Output Head</h3>
+<h3 id="transformer-block">Transformer Block</h3>
+<h3 id="linear-projection">Linear Projection</h3>
+<h3 id="rmsnorm-rmsnorm">RMSNorm RMSNorm</h3>
+<h3 id="embedding-layer">Embedding Layer</h3>
+<p>[Deepseek v3] hlkT k = TRMk(h&#x27;k ) = OutHead(hzk).</p>
+<h3 id="lm-head">LM Head</h3>
+<h3 id="cia">Cia</h3>
+<h3 id="transformer">Transformer</h3>
+<p>eh•5W</p>
+<h3 id="embedding">Embedding</h3>
+<h3 id="how-can">How can</h3>
+<h3 id="forward-i">Forward I</h3>
+<h3 id="target-llm">target LLM</h3>
+<p>can e,</p>
+<h3 id="forward-i">Forward I</h3>
+<p>(But they only do MTP with one token ahead)</p>
+<h3 id="lm-head">LM Head</h3>
+<h3 id="cte-auto-regression-heiw">c*te Auto-regression Heiw</h3>
+<h3 id="embeddi">Embeddi</h3>
+<h3 id="forward-2">Forward 2</h3>
+<h3 id="draft-model">Draft model</h3>
+<h3 id="forward-3">Forward 3</h3>
+<h3 id="eagle">[EAGLE]</h3>
+<p>(See paper for ablations)</p>
+</article>
+
+  </main>
+</body>
+</html>

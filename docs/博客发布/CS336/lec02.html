@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resource Accounting · Thoughts</title>
+  <meta name="description" content="负责记录想法的个人空间。">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="wave-scene" aria-hidden="true">
+    <svg class="waves" viewBox="0 0 1440 220" preserveAspectRatio="none">
+      <path class="wave-path wave-one" d="M0,96 C160,28 300,28 480,96 C650,160 820,160 1000,96 C1160,34 1300,34 1440,96 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-two" d="M0,128 C180,78 330,78 520,128 C690,176 860,176 1040,128 C1200,84 1320,84 1440,128 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-three" d="M0,158 C170,118 340,118 520,158 C700,198 880,198 1060,158 C1220,122 1340,122 1440,158 L1440,220 L0,220 Z"></path>
+    </svg>
+  </div>
+  <header class="site-header">
+    <a class="brand" href="../../">Thoughts</a>
+    
+    <nav class="nav">
+      <a href="../../">首页</a>
+      <a href="../../archive.html">归档</a>
+      <a href="../../game.html">游戏</a>
+      <a href="../../about.html">关于</a>
+    </nav>
+
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Resource Accounting</h1>
+  <div class="meta">CS336 · 更新于 2026-06-27</div>
+  <h1 id="resource-accounting">Resource Accounting</h1>
+<p>When training large models, it is easy to focus only on the model architecture and treat the system underneath as something vague. But parameters, gradients, activations, optimizer states, compute, bandwidth, and communication all have concrete costs.</p>
+<p>The main mindset is resource accounting. For a training run, we want to know where memory is spent, where FLOPs are spent, when bandwidth becomes the bottleneck, and how these quantities interact. There is no special mystery in this part of machine learning; it is mostly careful bookkeeping.</p>
+<h2 id="tensor-memory-and-floating-point-types">Tensor Memory and Floating-Point Types</h2>
+<p>Almost everything in training is stored as floating-point tensors: parameters, gradients, activations, and optimizer states. So the first question is simple: how many bytes does each value use?</p>
+<h3 id="float32--fp32">float32 / fp32</h3>
+<p><code>float32</code>, also called single precision, is the traditional baseline. It has 32 bits: 1 sign bit, 8 exponent bits, and 23 fraction bits. In PyTorch, <code>torch.float32</code> uses 4 bytes per value.</p>
+<pre><code class="language-python">x = torch.zeros(4, 8)
+
+assert x.numel() == 4 * 8
+assert x.element_size() == 4
+assert get_memory_usage(x) == 4 * 8 * 4  # 128 bytes</code></pre>
+<p>This small example is easy to reason about, but the same calculation becomes large very quickly. One matrix in the feedforward layer of GPT-3 already takes about 2.3 GB:</p>
+<pre><code class="language-python">assert get_memory_usage(torch.empty(12288 * 4, 12288)) == 2304 * 1024 * 1024
+# about 2.3 GB</code></pre>
+<p>This is one reason lower precision matters in deep learning. It is not only about faster arithmetic; memory capacity and memory movement become constraints by themselves.</p>
+<h3 id="float16--fp16">float16 / fp16</h3>
+<p><code>float16</code>, or half precision, cuts memory in half. It has 16 bits: 1 sign bit, 5 exponent bits, and 10 fraction bits. In PyTorch, each value uses 2 bytes.</p>
+<pre><code class="language-python">x = torch.zeros(4, 8, dtype=torch.float16)
+assert x.element_size() == 2</code></pre>
+<p>The benefit is immediate: the same number of tensor values uses half the memory. The problem is dynamic range. Small values can underflow:</p>
+<pre><code class="language-python">x = torch.tensor([1e-8], dtype=torch.float16)
+assert x == 0  # underflow</code></pre>
+<p>During training, this kind of underflow can become a stability problem rather than just a representation detail.</p>
+<h3 id="bfloat16">bfloat16</h3>
+<p><code>bfloat16</code> was developed to keep the memory benefit of fp16 while improving dynamic range. It still uses 2 bytes per value, but it keeps the same exponent width as fp32. The cost is fewer fraction bits, so the resolution is worse.</p>
+<p>For deep learning, this tradeoff is often acceptable. Training is usually more sensitive to range than to having many precise fraction bits.</p>
+<pre><code class="language-python">x = torch.tensor([1e-8], dtype=torch.bfloat16)
+assert x != 0  # no underflow</code></pre>
+<h3 id="fp8-fp4-and-lower-precision">fp8, fp4, and Lower Precision</h3>
+<p><code>fp8</code> was standardized in 2022 for machine-learning workloads. H100 GPUs support two common variants:</p>
+<ul>
+<li><code>E4M3</code>: range approximately <code>[-448, 448]</code>.</li>
+<li><code>E5M2</code>: range approximately <code>[-57344, 57344]</code>.</li>
+</ul>
+<p>The slide reference is Micikevicius et al. 2022.</p>
+<p>NVIDIA later introduced <code>nvfp4</code> in 2025. It uses only 4 bits per value, with representable values such as:</p>
+<pre><code class="language-text">-6, -4, -3, -2, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2, 3, 4, 6</code></pre>
+<p>Since 4 bits is extremely limited, <code>nvfp4</code> uses a separate scale factor per block. The slide also notes that Nemotron 3 Super was trained in NVFP4. The broader point is that numeric format has become part of training-system design.</p>
+<h2 id="gpu-resource-model">GPU Resource Model</h2>
+<p>After understanding how tensors occupy memory, the next question is where that memory lives and how data moves. A simple GPU system has CPU and RAM on the host side, GPU DRAM on the device side, streaming multiprocessors on the GPU, and a PCI bus connecting host and device.</p>
+<p>PyTorch exposes basic CUDA inspection:</p>
+<pre><code class="language-python">if not torch.cuda.is_available():
+    return
+
+num_gpus = torch.cuda.device_count()
+
+for i in range(num_gpus):
+    properties = torch.cuda.get_device_properties(i)</code></pre>
+<p>This matters because computation and data movement are separate resources. Later, when discussing bandwidth and arithmetic intensity, we will use this view to decide whether an operation is limited by math or by memory movement.</p>
+<h1 id="einops">Einops</h1>
+<p>Before doing resource accounting, it helps to write tensor dimensions clearly. Many PyTorch operations are straightforward mechanically; the difficult part is often remembering which dimension means what. <code>einops</code> and <code>einsum</code> make this bookkeeping explicit.</p>
+<h2 id="einsum"><code>einsum</code></h2>
+<p><code>einsum</code> is generalized matrix multiplication with named dimensions. For ordinary matrix multiplication:</p>
+<pre><code class="language-python">x = torch.ones(3, 4)  # seq1 hidden
+y = torch.ones(4, 3)  # hidden seq2
+
+# Old way
+z = x @ y  # seq1 seq2
+
+# Einops way
+z = einsum(x, y, &quot;seq1 hidden, hidden seq2 -&gt; seq1 seq2&quot;)</code></pre>
+<p>The <code>hidden</code> dimension appears in the inputs and disappears from the output, so it is summed over. The expression is longer than <code>x @ y</code>, but it makes the dimension contract explicit.</p>
+<p>For a batched example:</p>
+<pre><code class="language-python">x = torch.ones(2, 3, 4)  # batch seq1 hidden
+y = torch.ones(2, 3, 4)  # batch seq2 hidden
+
+# Old way
+z = x @ y.transpose(-2, -1)  # batch seq1 seq2
+
+# Einops way
+z = einsum(x, y, &quot;batch seq1 hidden, batch seq2 hidden -&gt; batch seq1 seq2&quot;)</code></pre>
+<p>We can also use <code>...</code> for any number of leading broadcast dimensions:</p>
+<pre><code class="language-python">z = einsum(x, y, &quot;... seq1 hidden, ... seq2 hidden -&gt; ... seq1 seq2&quot;)</code></pre>
+<h2 id="reduce"><code>reduce</code></h2>
+<p><code>reduce</code> applies an operation over dimensions that disappear from the output pattern.</p>
+<pre><code class="language-python">x = torch.ones(2, 3, 4)  # batch seq hidden
+
+# Old way
+y = x.sum(dim=-1)
+
+# Einops way
+y = reduce(x, &quot;... hidden -&gt; ...&quot;, &quot;sum&quot;)</code></pre>
+<p>The operation can be <code>sum</code>, <code>mean</code>, <code>max</code>, or <code>min</code>. Again, the advantage is that the dimension change is written directly in the expression.</p>
+<h2 id="rearrange"><code>rearrange</code></h2>
+<p><code>rearrange</code> is useful when one dimension is really a flattened combination of several dimensions. For example, <code>total_hidden</code> might represent <code>heads * hidden1</code>:</p>
+<pre><code class="language-python">x = torch.ones(3, 8)  # seq total_hidden
+w = torch.ones(4, 4)  # hidden1 hidden2
+
+x = rearrange(x, &quot;... (heads hidden1) -&gt; ... heads hidden1&quot;, heads=2)
+x = einsum(x, w, &quot;... hidden1, hidden1 hidden2 -&gt; ... hidden2&quot;)</code></pre>
+<p>This looks like a notation convenience, but it also helps resource accounting. If we do not know what each dimension means, we cannot reliably count memory, FLOPs, or communication.</p>
+<h1 id="compute-accounting">Compute Accounting</h1>
+<p>Now we can count computation. Two similar terms need to be separated:</p>
+<ul>
+<li><code>FLOPs</code>: floating-point operations, the total amount of computation.</li>
+<li><code>FLOP/s</code>: floating-point operations per second, the rate at which hardware performs computation.</li>
+</ul>
+<p>The slides estimate GPT-3 training at <code>3.14e23</code> FLOPs and speculate GPT-4 training at <code>2e25</code> FLOPs. H100 peak performance is listed as <code>1979</code> teraFLOP/s with sparsity, and roughly half of that without sparsity.</p>
+<p>A rough upper-bound estimate for total compute is:</p>
+<pre><code class="language-python">h100_flop_per_sec = 1979e12 / 2
+total_flops = num_gpus * seconds * h100_flop_per_sec</code></pre>
+<p>This is only a ceiling. Real training reaches some fraction of it depending on the workload and implementation.</p>
+<h2 id="counting-matmul-flops">Counting Matmul FLOPs</h2>
+<p>For matrix multiplication <code>y = x @ w</code>:</p>
+<pre><code class="language-python">if torch.cuda.is_available():
+    B = 16384  # number of points
+    D = 32768  # dimension
+    K = 8192   # number of outputs
+else:
+    B = 1024
+    D = 256
+    K = 64
+
+x = torch.ones(B, D, device=cuda_if_available())
+w = torch.randn(D, K, device=cuda_if_available())
+y = x @ w</code></pre>
+<p>Each output element is a dot product over the <code>D</code> dimension. For each <code>(i, j, k)</code> triple, there is one multiplication and one addition, so:</p>
+<pre><code class="language-python">actual_num_flops = 2 * B * D * K</code></pre>
+<p>This is why matrix multiplication dominates large model training. It is regular, dense, and extremely compute-heavy at scale.</p>
+<h2 id="model-flops-utilization">Model FLOPs Utilization</h2>
+<p>Peak FLOP/s depends strongly on dtype, so utilization should be compared against the hardware number for the relevant dtype:</p>
+<pre><code class="language-python">promised_flop_per_sec = get_promised_flop_per_sec(x.dtype)
+mfu = actual_flop_per_sec / promised_flop_per_sec</code></pre>
+<p><code>MFU</code> means model FLOPs utilization:</p>
+<pre><code class="language-text">MFU = actual FLOP/s / promised FLOP/s</code></pre>
+<p>An <code>MFU &gt;= 0.5</code> is usually quite good. It tends to be higher when matrix multiplications dominate, because large matmuls are easier to run near the hardware&#x27;s compute capacity.</p>
+<h1 id="bandwidth-arithmetic-intensity-and-bottlenecks">Bandwidth, Arithmetic Intensity, and Bottlenecks</h1>
+<p>FLOPs alone do not determine runtime. Some operations do little computation but move a lot of data. In those cases, memory bandwidth rather than arithmetic throughput becomes the limiting resource.</p>
+<h2 id="communication-vs-computation-time">Communication vs Computation Time</h2>
+<p>Consider ReLU:</p>
+<pre><code class="language-python">n = 1024 * 1024
+x = torch.ones(n, dtype=torch.bfloat16, device=cuda_if_available())
+y = torch.relu(x)
+
+bytes = (2 * n) + (2 * n)  # read x, write y; bf16 is 2 bytes/value
+flops = n                 # n comparisons
+
+communication_time = bytes / h100_bytes_per_sec
+computation_time = flops / h100_flop_per_sec
+total_time = max(communication_time, computation_time)</code></pre>
+<p>This assumes communication and computation overlap perfectly, so the slower side determines total time. ReLU does very little math per element, yet it still needs to read and write memory, which makes it bandwidth-sensitive.</p>
+<h2 id="arithmetic-intensity">Arithmetic Intensity</h2>
+<p>Arithmetic intensity makes this bottleneck more systematic:</p>
+<pre><code class="language-text">accelerator_intensity = hardware FLOP/s / hardware bytes/s
+arithmetic_intensity = workload FLOPs / workload bytes</code></pre>
+<p>The rule is:</p>
+<ul>
+<li>Memory-bound if <code>arithmetic_intensity &lt; accelerator_intensity</code>.</li>
+<li>Compute-bound if <code>arithmetic_intensity &gt; accelerator_intensity</code>.</li>
+</ul>
+<p>For ReLU:</p>
+<pre><code class="language-text">arithmetic_intensity = 0.25
+h100_accelerator_intensity ~= 295.37</code></pre>
+<p>This is far below H100&#x27;s accelerator intensity, so ReLU is memory-bound.</p>
+<p>GELU performs more computation:</p>
+<pre><code class="language-python">n = 1024
+x = torch.ones(n, dtype=torch.bfloat16, device=cuda_if_available())
+y = F.gelu(x)
+
+bytes = (2 * n) + (2 * n)  # read x, write y
+flops = 20 * n             # approximate cost of GELU</code></pre>
+<p>Its arithmetic intensity is about <code>5</code>, which is still below the H100 threshold, so GELU is also memory-bound.</p>
+<p>Matrix multiplication behaves differently:</p>
+<pre><code class="language-python">n = 1024
+x = torch.ones(n, n, dtype=torch.bfloat16, device=cuda_if_available())
+w = torch.ones(n, n, dtype=torch.bfloat16, device=cuda_if_available())
+y = x @ w
+
+bytes = (2 * n * n) + (2 * n * n) + (2 * n * n)  # read x, read w, write y
+flops = n * n * (2 * n - 1)                      # n^2 dot products
+arithmetic_intensity = flops / bytes             # approximately n / 3</code></pre>
+<p>As <code>n</code> grows, the arithmetic intensity of matmul grows as well. Large matrix multiplications can therefore become compute-bound, which is one reason accelerators are designed to make this operation extremely fast.</p>
+<h2 id="roofline-intuition">Roofline Intuition</h2>
+<p>The roofline plot connects arithmetic intensity with realized FLOP/s. The x-axis is arithmetic intensity, and the y-axis is realized FLOP/s. The sloped region corresponds to bandwidth-bound workloads, while the flat region corresponds to compute-bound workloads.</p>
+<p>The useful intuition is that an algorithm doing little computation per byte moved cannot reach peak FLOP/s, no matter how fast the arithmetic units are. To approach peak compute, the workload needs enough arithmetic intensity.</p>
+<h1 id="memory-accounting">Memory Accounting</h1>
+<p>For a rough transformer-like model with dimension <code>D</code>, batch-related size <code>B</code>, and <code>L</code> layers, we can estimate:</p>
+<pre><code class="language-python"># Parameters, assuming bf16
+parameter_memory = 2 * (D * D * L)
+
+# Activations, assuming bf16
+activation_memory = 2 * B * D * L
+
+# Gradients
+gradient_memory = 2 * parameter_memory
+
+# Optimizer states, commonly fp32 for stability
+optimizer_state_memory = 4 * parameter_memory</code></pre>
+<p>Optimizer states are easy to underestimate. Adam stores first and second moments, and these are often kept in fp32 for stability. Together, the two moments are about 8 bytes per parameter, which can become a major part of training memory.</p>
+<h2 id="activation-checkpointing">Activation Checkpointing</h2>
+<p>When activation memory becomes too large, activation checkpointing trades compute for memory. The forward pass stores only selected activations. During the backward pass, missing activations are recomputed from the nearest checkpoint.</p>
+<p>Without checkpointing, we might store every intermediate value:</p>
+<pre><code class="language-text">x g1 h1 g2 h2 g3 h3 g4 h4</code></pre>
+<p>With checkpointing, we store fewer values:</p>
+<pre><code class="language-text">x h1 h2 h3 h4</code></pre>
+<p>We can measure the peak memory of a checkpointed model like this:</p>
+<pre><code class="language-python">model = DeepNetworkCheckpointed(dim=D, num_layers=L).to(cuda_if_available())
+checkpointed_memory = get_max_memory_usage(lambda: model(x).backward())</code></pre>
+<p>For very deep networks, it is also possible to store only some layer outputs:</p>
+<pre><code class="language-text">store all layers:  | h1 h2 h3 h4 h5 h6 h7 h8 h9 |
+store no layers:   |                            |
+store some layers: |       h3       h6       h9 |</code></pre>
+<p>This reduces peak activation memory further, at the cost of recomputation during backpropagation. That is the recurring theme of resource accounting: training cost is distributed across dtype, parameters, activations, optimizer state, compute, bandwidth, and the tradeoffs we choose between memory and recomputation.</p>
+</article>
+
+  </main>
+</body>
+</html>

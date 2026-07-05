@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tokenization · Thoughts</title>
+  <meta name="description" content="负责记录想法的个人空间。">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+  <div class="wave-scene" aria-hidden="true">
+    <svg class="waves" viewBox="0 0 1440 220" preserveAspectRatio="none">
+      <path class="wave-path wave-one" d="M0,96 C160,28 300,28 480,96 C650,160 820,160 1000,96 C1160,34 1300,34 1440,96 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-two" d="M0,128 C180,78 330,78 520,128 C690,176 860,176 1040,128 C1200,84 1320,84 1440,128 L1440,220 L0,220 Z"></path>
+      <path class="wave-path wave-three" d="M0,158 C170,118 340,118 520,158 C700,198 880,198 1060,158 C1220,122 1340,122 1440,158 L1440,220 L0,220 Z"></path>
+    </svg>
+  </div>
+  <header class="site-header">
+    <a class="brand" href="../../">Thoughts</a>
+    
+    <nav class="nav">
+      <a href="../../">首页</a>
+      <a href="../../archive.html">归档</a>
+      <a href="../../game.html">游戏</a>
+      <a href="../../about.html">关于</a>
+    </nav>
+
+  </header>
+  <main class="container">
+    
+<article>
+  <h1>Tokenization</h1>
+  <div class="meta">CS336 · 更新于 2026-06-27</div>
+  <h1 id="tokenization">Tokenization</h1>
+<p>Before a language model can assign probabilities to text, the text has to be turned into something the model can actually operate on. Raw text usually starts as a Unicode string:</p>
+<pre><code class="language-python">string = &quot;Hello, 🌍! 你好!&quot;</code></pre>
+<p>The model, however, works over sequences of tokens, and those tokens are usually represented internally as integer indices:</p>
+<pre><code class="language-python">indices = [15496, 11, 995, 0]</code></pre>
+<p>This is the role of tokenization. It builds the interface between human-readable text and the model&#x27;s token sequence. At minimum, a tokenizer needs two directions: <code>encode</code>, which converts a string into tokens or token indices, and <code>decode</code>, which converts those tokens back into text. A <code>Tokenizer</code> class is mainly the object that implements these two transformations.</p>
+<h2 id="what-gpt-tokenization-reveals">What GPT Tokenization Reveals</h2>
+<p>If we inspect a GPT tokenizer from OpenAI, such as <code>tiktoken</code>, the first thing we notice is that tokens do not always match our intuitive idea of words.</p>
+<pre><code class="language-python">tokenizer = get_gpt5_tokenizer()
+string = &quot;Hello, 🌍! 你好!&quot;</code></pre>
+<p>For example, a word and the space before it are often merged into the same token, such as <code>&quot; world&quot;</code>. This means the same visible word can have different token representations depending on where it appears. In <code>&quot;hello hello&quot;</code>, the first <code>hello</code> and the second <code>hello</code> may be tokenized differently because the second one includes the preceding space.</p>
+<p>Numbers show a similar pattern. They are often split into chunks of a few digits rather than treated as a single semantic unit. So a tokenizer is closer to a statistical compression mechanism than a dictionary of words. It cuts text into pieces that are convenient for the model to represent and learn from.</p>
+<h2 id="why-compression-ratio-matters">Why Compression Ratio Matters</h2>
+<p>Once tokens become the sequence seen by the model, the number of tokens matters directly. We can describe this with compression ratio: how many bytes of raw text are represented by each token.</p>
+<pre><code class="language-python">compression_ratio = get_compression_ratio(string, indices)</code></pre>
+<p>A larger compression ratio means the same text becomes a shorter token sequence. This matters because attention cost grows roughly quadratically with sequence length. If a tokenizer breaks text into too many pieces, the model pays more attention cost for the same underlying content.</p>
+<p>One natural response is to increase the vocabulary size:</p>
+<pre><code class="language-python">vocabulary_size = tokenizer.n_vocab</code></pre>
+<p>A larger vocabulary can improve compression because more common patterns can be represented by single tokens. The tradeoff is sparsity. When there are more possible token values, each individual token may appear less often in training, so the model gets fewer examples from which to learn its behavior. Tokenizer design is therefore balancing two pressures: compress the sequence, while keeping token learning dense enough.</p>
+<h2 id="the-limits-of-word-based-tokenization">The Limits of Word-Based Tokenization</h2>
+<p>The most direct idea is to tokenize by words. This quickly runs into several problems.</p>
+<p>Many words are rare, so the model may see too few examples to learn them well. A word-level vocabulary also does not naturally give us a fixed vocabulary size, because new words keep appearing as the corpus grows. When an unseen word appears at test time, the tokenizer needs a special <code>UNK</code> token, which throws away information and can make downstream computation awkward.</p>
+<p>This suggests the kind of tokenizer we want. It should have a fixed vocabulary, represent arbitrary text, shorten common patterns, and still handle rare patterns without collapsing them into an unknown symbol.</p>
+<h2 id="byte-pair-encoding">Byte Pair Encoding</h2>
+<p>Byte Pair Encoding, or BPE, was introduced by Philip Gage in 1994 for data compression. It was later adapted to NLP for neural machine translation by Sennrich et al. in 2015. Earlier NLP work often used word-based tokenization, while GPT-2 later popularized BPE-style tokenization for language models.</p>
+<p>The core idea is simple: train the tokenizer on raw text, and let the vocabulary adapt to the data. Common byte sequences become single tokens. Rare byte sequences remain represented by smaller pieces. The common cases become shorter, and the rare cases remain expressible.</p>
+<p>The training procedure can be understood as:</p>
+<ol>
+<li>Start with each byte as a token.</li>
+<li>Count adjacent token pairs in the training text.</li>
+<li>Merge the most common adjacent pair into a new token.</li>
+<li>Repeat until the desired vocabulary size is reached.</li>
+</ol>
+<p>This gives BPE an important property. The vocabulary size is fixed, yet arbitrary text can still be represented, because the tokenizer can always fall back to byte-level pieces. In this sense, BPE is a practical compromise between word-level tokenization and pure byte-level tokenization.</p>
+<h2 id="key-takeaways">Key Takeaways</h2>
+<p>Tokenization decides how raw text becomes the sequence that a model actually sees. This affects context length, attention cost, vocabulary size, and the sparsity of token learning. Larger vocabularies can compress text better, but they can also make individual tokens harder to learn from data.</p>
+<p>BPE is useful because it gives common patterns short representations while keeping rare patterns representable. From this point of view, the tokenizer is not just a preprocessing detail. It shapes the model&#x27;s view of the text before the model begins learning anything from it.</p>
+</article>
+
+  </main>
+</body>
+</html>
